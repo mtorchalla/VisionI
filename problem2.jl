@@ -15,7 +15,7 @@ end
 # filling up all unknown values with 0
 function separatechannels(data::Array{Float64,2})
   y,x = size(data) #Picture size
-  #r
+  #Image for R
   r = zeros(y,x)
   for i=1:2:Int(y)-1
     for j=1:2:x-1
@@ -25,14 +25,14 @@ function separatechannels(data::Array{Float64,2})
       r[i+1,j] = data[i+1,j]
     end
   end
-  #g
+  #Image for G
   g = zeros(y,x)
   for i=1:2:Int(y)-1
     for j=2:2:x
       g[i,j] = data[i,j]
     end
   end
-  #b
+  #Image for B
   b = zeros(y,x)
   for i=2:2:Int(y)
     for j=1:2:x
@@ -46,7 +46,7 @@ end
 # Combine three color channels into a single image
 function makeimage(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2})
   y, x = size(r)
-  image = zeros(y, x, 3)
+  image = zeros(y, x, 3) #using PyPlot imshow: RGB channel is the 3rd Dimension
   image[:,:,1] = r
   image[:,:,2] = g
   image[:,:,3] = b
@@ -57,11 +57,13 @@ end
 # Interpolate missing color values using bilinear interpolation
 function interpolate(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2})
   y,x = size(r)
-  #Filter Matrices
+
+  #Filter Matrices, based on the task
   k_r = 1/4*[0 1 0; 1 4 1; 0 0 1]
   k_g = 1/4*[1 2 1; 2 4 2; 1 2 1]
   k_b = 1/4*[1 2 1; 2 4 2; 1 2 1]
 
+  #Allocate Memory for the interpolated channels
   r_new = zeros(y,x)
   g_new = zeros(y,x)
   b_new = zeros(y,x)
@@ -70,6 +72,7 @@ function interpolate(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2}
   g_new = imfilter(g, centered(k_g))
   b_new = imfilter(b, centered(k_b))
 
+  #Own algorithm for Konvolution, not altering the already colored Pixels could be faster
   # for i=2:y-1
   #   for j=2:x-1
   #     #Konvolution for R,G,B:
