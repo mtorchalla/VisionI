@@ -68,9 +68,9 @@ function interpolate(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2}
   g_new = zeros(y,x)
   b_new = zeros(y,x)
 
-  r_new = imfilter(r, centered(k_r))
-  g_new = imfilter(g, centered(k_g))
-  b_new = imfilter(b, centered(k_b))
+  r_new = imfilter(r, centered(k_r), "circular")
+  g_new = imfilter(g, centered(k_g), "circular")
+  b_new = imfilter(b, centered(k_b), "circular")
 
   #Own algorithm for Konvolution, not altering the already colored Pixels could be faster
   # for i=2:y-1
