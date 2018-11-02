@@ -35,6 +35,10 @@ function detectedges(Ix::Array{Float64,2},Iy::Array{Float64,2}, thr::Float64)
   grad_magn = sqrt.(Ix.^2 + Iy.^2)
   edges = grad_magn
   # edges = grad_magn = grad_magn .* (grad_magn .> thr)
+  #
+  #   ELEMENT WISE VERSION THRESHOLD
+  # edges = zeros(size(grad_magn))
+  # edges = edges.+(grad_magn .> thr) # Works the same as the for-loop
 
   # Iterate through edges to apply the threshold
   for x=1:size(edges)[1]
