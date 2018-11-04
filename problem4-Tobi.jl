@@ -20,8 +20,8 @@ end
 
 # Apply derivate filters to an image and return the derivative images
 function filterimage(I::Array{Float32,2},fx::Array{Float64,2},fy::Array{Float64,2})
-  Ix = imfilter(I,centered(fx))
-  Iy = imfilter(I,centered(fy))
+  Ix = imfilter(I,centered(fx), "replicate")
+  Iy = imfilter(I,centered(fy), "replicate")
 
   #TODO sign of the derivates
   #TODO Bounding Box
@@ -52,21 +52,24 @@ function detectedges(Ix::Array{Float64,2},Iy::Array{Float64,2}, thr::Float64)
   #     end
   #   end
   # end
-  edges = zeros(size(Ix))
+  #edges = zeros(size(Ix))
 
-  for x=1:size(edges)[1]
-    for y=1:size(edges)[2]
+  #for x=1:size(edges)[1]
+  #  for y=1:size(edges)[2]
+  #
+  #    edges[x,y] = sqrt(Ix[x,y]^2+Iy[x,y]^2)  # Gradient Magnitude
+  #
+  #    if edges[x,y]<thr                       # Thresholding
+  #       edges[x,y]= 0
+  #    else
+  #       edges[x,y] = 1
+  #    end
 
-      edges[x,y] = sqrt(Ix[x,y]^2+Iy[x,y]^2)  # Gradient Magnitude
-
-      if edges[x,y]<thr                       # Thresholding
-         edges[x,y]= 0
-      else
-         edges[x,y] = 1
-      end
-
-    end
-  end
+  #  end
+  #end
+  
+  grad_magn = sqrt.(Ix.^2 + Iy.^2)  #Gradient Magnitude
+  edges = float(grad_magn .> thr)   #Loopless Thresholding
 
   return edges::Array{Float64,2}
 end
