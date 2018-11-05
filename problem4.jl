@@ -5,20 +5,14 @@ using PyPlot
 function createfilters()
   sigma = 0.9
   dx = 0.5*[-1. 0. 1.]
-  dy = 0.5*[-1.; 0.; 1.] #dy = dx'
-  gax = [gaussF(-1, sigma) gaussF(0, sigma) gaussF(1, sigma)]
-  gy = [gaussF(-1, sigma); gaussF(0, sigma); gaussF(1, sigma)] #gy = gx'
-  # println(dx, dy, gx, gy)
-  fx = gy * dx
-  fy = dy * gax
-  # fx = 0.5*[-1 0 1; -1 0 1; -1 0 1]
-  # fy = [gaussY(-1, sigma); gaussY(0,sigma); gaussY(1,sigma)]
-  # fy = hcat(fy, fy, fy)
-  return fx::Array{Float64,2}, fy::Array{Float64,2}
-end
+  dy = 0.5*[-1.; 0.; 1.]
+  gx =  1/(sqrt(2*pi)*sigma)*[  exp(-((-1)^2/(2*sigma^2))) exp(-(0^2/(2*sigma^2))) exp(-(1^2/(2*sigma^2)))   ]
+  gy =  1/(sqrt(2*pi)*sigma)*[  exp(-((-1)^2/(2*sigma^2))); exp(-(0^2/(2*sigma^2))); exp(-(1^2/(2*sigma^2))) ]
 
-function gaussF(a::Int64, sigma::Float64)
-  return 1/(sqrt(2*pi)*sigma)*exp(-(a^2/(2*sigma^2)))::Float64
+  fx = gy * dx
+  fy = dy * gx
+
+  return fx::Array{Float64,2}, fy::Array{Float64,2}
 end
 
 # Apply derivate filters to an image and return the derivative images
@@ -33,25 +27,9 @@ end
 # Apply thresholding on the gradient magnitudes to detect edges
 function detectedges(Ix::Array{Float64,2},Iy::Array{Float64,2}, thr::Float64)
   grad_magn = sqrt.(Ix.^2 + Iy.^2)
-  edges = grad_magn
-  # edges = grad_magn = grad_magn .* (grad_magn .> thr)
-  #
-  #   ELEMENT WISE VERSION THRESHOLD
-  # edges = zeros(size(grad_magn))
-  # edges = edges.+(grad_magn .> thr) # Works the same as the for-loop
 
-  # Iterate through edges to apply the threshold
-  for x=1:size(edges)[1]
-    for y=1:size(edges)[2]
+  edges = float(grad_magn .> thr)
 
-      if edges[x,y]<thr                       # Thresholding
-         edges[x,y]= 0
-      else
-         edges[x,y] = 1
-      end
-
-    end
-  end
   return edges::Array{Float64,2}
 end
 
@@ -115,7 +93,7 @@ function problem4()
   gcf()
 
   # threshold derivative
-  threshold = 18. / 255.
+  threshold = 15. / 255.
   edges = detectedges(imgx,imgy,threshold)
   figure()
   imshow(edges.>0, "gray", interpolation="none")
