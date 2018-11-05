@@ -3,12 +3,19 @@ using PyPlot
 
 # Create 3x3 derivative filters in x and y direction
 function createfilters()
+
+  # Parameter for he Gaussian Function
   sigma = 0.9
+
+  # Gradient filter in x and y direction
   dx = 0.5*[-1. 0. 1.]
   dy = 0.5*[-1.; 0.; 1.]
+
+  # Gaussian filter in x and y direction
   gx =  1/(sqrt(2*pi)*sigma)*[  exp(-((-1)^2/(2*sigma^2))) exp(-(0^2/(2*sigma^2))) exp(-(1^2/(2*sigma^2)))   ]
   gy =  1/(sqrt(2*pi)*sigma)*[  exp(-((-1)^2/(2*sigma^2))); exp(-(0^2/(2*sigma^2))); exp(-(1^2/(2*sigma^2))) ]
 
+  # Multiply the Gaussian and gradient filter to get a 3x3 filter matrix each for the x and y gardient
   fx = gy * dx
   fy = dy * gx
 
@@ -17,17 +24,22 @@ end
 
 # Apply derivate filters to an image and return the derivative images
 function filterimage(I::Array{Float32,2},fx::Array{Float64,2},fy::Array{Float64,2})
+
+  # Apply the gardient filters for x and y to the image with "replicate" padding
   Ix = imfilter(I, centered(fx), "replicate")
   Iy = imfilter(I, centered(fy), "replicate")
-  # imshow(Ix)
+
   return Ix::Array{Float64,2},Iy::Array{Float64,2}
 end
 
 
 # Apply thresholding on the gradient magnitudes to detect edges
 function detectedges(Ix::Array{Float64,2},Iy::Array{Float64,2}, thr::Float64)
+
+  # Calculate the Gradient Magnitude of the combination of Ix and Iy
   grad_magn = sqrt.(Ix.^2 + Iy.^2)
 
+  # Apply the threshold to the gradient magnitude to get a Binary image showing edges
   edges = float(grad_magn .> thr)
 
   return edges::Array{Float64,2}
@@ -36,19 +48,28 @@ end
 
 # Apply non-maximum-suppression
 function nonmaxsupp(edges::Array{Float64,2},Ix::Array{Float64,2},Iy::Array{Float64,2})
+
+  # Calculate the Gradient Magnitude of the combination of Ix and Iy
   grad_magn = sqrt.(Ix.^2 + Iy.^2)
 
   # Non Maximum supression
   for x=2:1:size(edges)[1]-1
     for y=2:1:size(edges)[2]-1
-      if abs(Ix[x,y]) > abs(Iy[x,y])  # Choose Edge orientation
-        inspected = [grad_magn[x+Int(sign(Ix[x,y])),y+1] grad_magn[x+Int(sign(Ix[x,y])),y-1]] # Save the to be inspected neighbours
-        if (inspected[1]>grad_magn[x+Int(sign(Ix[x,y])),y] || inspected[2]>grad_magn[x+Int(sign(Ix[x,y])),y]) # Check if neighbour is greater
+      # Choose Edge orientation in x or y direction
+      if abs(Ix[x,y]) > abs(Iy[x,y]) # Edge driection is y
+        # Save the to be inspected neighbours
+        inspected = [grad_magn[x+Int(sign(Ix[x,y])),y+1] grad_magn[x+Int(sign(Ix[x,y])),y-1]]
+        # Check if one of the two neighbours is greater than the center pixel
+        if (inspected[1]>grad_magn[x,y] || inspected[2]>grad_magn[x,y])
+          # Set the center pixel to Zero
           edges[x,y] = 0.0
         end
-      else
+      else # Edge driection is x
+        # Save the to be inspected neighbours
         inspected = [grad_magn[x+1,y+Int(sign(Iy[x,y]))] grad_magn[x-1,y+Int(sign(Iy[x,y]))]]
-        if (inspected[1]>grad_magn[x,y+Int(sign(Iy[x,y]))] || inspected[2]>grad_magn[x,y+Int(sign(Iy[x,y]))])
+        # Check if one of the two neighbours is greater than the center pixel
+        if (inspected[1]>grad_magn[x,y] || inspected[2]>grad_magn[x,y])
+          # Set the center pixel to Zero
           edges[x,y] = 0.0
         end
       end

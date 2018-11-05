@@ -109,6 +109,7 @@ end
 # Apply full projection matrix *C* to 3D points *X*
 function projectpoints(P::Array{Float64,2}, X::Array{Float64,2})
   P2d = P * cart2hom(X) #vcat(X, ones(1,2904))
+
   return P2d::Array{Float64,2}
 end
 
@@ -151,9 +152,12 @@ function problem3()
 
   # reproject points
   points2 = projectpoints(P,worldpoints)
+
   #To get the projected Points as before, __
   #we have to do the Intrinsic camera transformation:
-  points2 = K * points2 ./ z; points2 = points2[1:2,:]
+  points2 = K * points2 ./ z;
+  points2 = points2[1:2,:];
+
   displaypoints2d(points2)
 
   @test points ≈ points2
