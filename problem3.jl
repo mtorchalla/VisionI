@@ -13,7 +13,7 @@ end
 
 # Transform from homogeneous to Cartesian coordinates
 function hom2cart(points::Array{Float64,2})
-  points_cart = points[1:3,:]
+  points_cart = points[1:end-1,:]
   return points_cart::Array{Float64,2}
 end
 
@@ -55,8 +55,8 @@ function getfullprojection(T::Array{Float64,2},Rx::Array{Float64,2},Ry::Array{Fl
   #The order of the rotation transformation is in general not kommutativ,
   #because the multiplication of matrices is not kommutativ, too
   #The translation however is kommutativ, because we can add the vectors together
-  P =  hcat(Ry*Rx*Rz, T[:,4])
-  M = vcat(P, [0 0 0 1])
+  P =  V*hcat(Ry*Rx*Rz, T[:,4])
+  M = vcat(hcat(Ry*Rx*Rz, T[:,4]), [0 0 0 1])
   return P::Array{Float64,2},M::Array{Float64,2}
 end
 
@@ -100,7 +100,6 @@ end
 # Plot 3D points
 function displaypoints3d(points::Array{Float64,2})
   figure()
-  # scatter3D(points[1,:], points[2,:], points[3,:])
   plot3D(points[1,:], points[2,:], points[3,:]) #more performant than scatter3D.
   title("It's a cow! (3D-Points)")
   return gcf()::Figure
@@ -108,8 +107,9 @@ end
 
 # Apply full projection matrix *C* to 3D points *X*
 function projectpoints(P::Array{Float64,2}, X::Array{Float64,2})
-  P2d = P * cart2hom(X) #vcat(X, ones(1,2904))
-
+  P2d = P * cart2hom(X)
+  P2d = P2d./P2d[3,:]' # Divide the camera coordinates by Z to get the image coordinates
+  P2d = hom2cart(P2d)
   return P2d::Array{Float64,2}
 end
 
@@ -152,11 +152,6 @@ function problem3()
 
   # reproject points
   points2 = projectpoints(P,worldpoints)
-
-  #To get the projected Points as before, __
-  #we have to do the Intrinsic camera transformation:
-  points2 = K * points2 ./ z;
-  points2 = points2[1:2,:];
 
   displaypoints2d(points2)
 
