@@ -115,7 +115,7 @@ function problem4()
   gcf()
 
   # threshold derivative
-  threshold = 18. / 255.
+  threshold = 15. / 255.
   edges = detectedges(imgx,imgy,threshold)
   figure()
   imshow(edges.>0, "gray", interpolation="none")
