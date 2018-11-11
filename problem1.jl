@@ -28,9 +28,9 @@ end
 
 # display the normal and the mirrored image in one plot
 function showimages(img1::Array{Float32,3}, img2::Array{Float32,3})
-  PyPlot.subplot(121)
+  PyPlot.subplot(121) #SubPlot: 1 Row, 2 Columns, Index 1
   PyPlot.imshow(img1)
-  PyPlot.subplot(122)
+  PyPlot.subplot(122) #SubPlot: 1 Row, 2 Columns, Index 2
   PyPlot.imshow(img2)
 end
 

@@ -14,9 +14,9 @@ end
 # Separate the image data into three images (one for each color channel),
 # filling up all unknown values with 0
 function separatechannels(data::Array{Float64,2})
-  y,x = size(data) #Picture size
-  #Image for R
-  r = zeros(y,x)
+  y,x = size(data) #get Image size
+  #extract Red pixels
+  r = zeros(y,x) #Fill missing values with zeros
   for i=1:2:Int(y)-1
     for j=1:2:x-1
       r[i,j] = data[i,j]
@@ -25,15 +25,15 @@ function separatechannels(data::Array{Float64,2})
       r[i+1,j] = data[i+1,j]
     end
   end
-  #Image for G
-  g = zeros(y,x)
+  #extract Green pixels
+  g = zeros(y,x) #Fill missing values with zeros
   for i=1:2:Int(y)-1
     for j=2:2:x
       g[i,j] = data[i,j]
     end
   end
-  #Image for B
-  b = zeros(y,x)
+  #extract Blue pixels
+  b = zeros(y,x) #Fill missing values with zeros
   for i=2:2:Int(y)
     for j=1:2:x
       b[i,j] = data[i,j]
@@ -59,18 +59,19 @@ function interpolate(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2}
   y,x = size(r)
 
   #Filter Matrices, based on the task
-  k_r = 1/4*[0 1 0; 1 4 1; 0 0 1]
-  k_g = 1/4*[1 2 1; 2 4 2; 1 2 1]
-  k_b = 1/4*[1 2 1; 2 4 2; 1 2 1]
+  k_r = 1/4*[0 1 0; 1 4 1; 0 0 1] #Filter matrix for Red
+  k_g = 1/4*[1 2 1; 2 4 2; 1 2 1] #Filter matrix for Green
+  k_b = 1/4*[1 2 1; 2 4 2; 1 2 1] #Filter matrix for Blue
 
   #Allocate Memory for the interpolated channels
   r_new = zeros(y,x)
   g_new = zeros(y,x)
   b_new = zeros(y,x)
 
-  r_new = imfilter(r, centered(k_r), "circular")
-  g_new = imfilter(g, centered(k_g), "circular")
-  b_new = imfilter(b, centered(k_b), "circular")
+  #Interpolate bilinear, reflect boundary pixels relative to the edge
+  r_new = imfilter(r, centered(k_r), "reflect")
+  g_new = imfilter(g, centered(k_g), "reflect")
+  b_new = imfilter(b, centered(k_b), "reflect")
 
   #Own algorithm for Konvolution, not altering the already colored Pixels could be faster
   # for i=2:y-1
@@ -79,7 +80,7 @@ function interpolate(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2}
   #     r_new[i,j] = sum(k_r.*r[i-1:i+1, j-1:j+1])
   #     g_new[i,j] = sum(k_g.*g[i-1:i+1, j-1:j+1])
   #     b_new[i,j] = sum(k_b.*b[i-1:i+1, j-1:j+1])
-  #     #Faster, not working? #TODO
+  #     #Faster, if condition not working? #TODO
   #     # if r[i,j] == 0.0
   #     #   r_new[i,j] = sum(k_r.*r[i-1:i+1, j-1:j+1])
   #     #   print(r_new[i,j])
@@ -94,6 +95,7 @@ function interpolate(r::Array{Float64,2},g::Array{Float64,2},b::Array{Float64,2}
   #     # end
   #   end
   # end
+
   image = makeimage(r_new,g_new,b_new)
   return image::Array{Float64,3}
 end
@@ -101,10 +103,10 @@ end
 
 # Display two images in a single figure window
 function displayimages(img1::Array{Float64,3}, img2::Array{Float64,3})
-  subplot(121)
-  imshow(img1)
-  subplot(122)
-  imshow(img2)
+  PyPlot.subplot(121) #SubPlot: 1 Row, 2 Columns, Index 1
+  PyPlot.imshow(img1)
+  PyPlot.subplot(122) #SubPlot: 1 Row, 2 Columns, Index 1
+  PyPlot.imshow(img2)
 end
 
 #= Problem 2
