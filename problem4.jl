@@ -114,7 +114,7 @@ function problem4()
   gcf()
 
   # threshold derivative
-  threshold = 15. / 255.
+  threshold = 15. / 255. #threshold should be small enough, to detect the edge of the house on the surface of the water and big enough to ignore most of the reflection 
   edges = detectedges(imgx,imgy,threshold)
   figure()
   imshow(edges.>0, "gray", interpolation="none")
