@@ -2,15 +2,40 @@ using Images
 using PyPlot
 
 
+
 # Create a gaussian filter
 function makegaussianfilter(size::Array{Int,2},sigma::Float64)
+
+  # Gaussian filter in x and y direction
+  gx =  1/(sqrt(2*pi)*sigma)*[  exp(-((-1)^2/(2*sigma^2))) exp(-(0^2/(2*sigma^2))) exp(-(1^2/(2*sigma^2)))   ]
+  gy =  1/(sqrt(2*pi)*sigma)*[  exp(-((-1)^2/(2*sigma^2))); exp(-(0^2/(2*sigma^2))); exp(-(1^2/(2*sigma^2))) ]
 
   return f::Array{Float64,2}
 end
 
 # Create a binomial filter
 function makebinomialfilter(size::Array{Int,2})
+  binomialWeightsx = zeros(size[1]);
+  binomialWeightsy = zeros(size[2]);
 
+  #Pascals triangle reason for the shift -1 TODO Remove
+
+  #Calculate the binomial Weights in x direction
+  for i=1:size[1]
+    binomialWeightsx[i] = binomial(size[1]-1, i-1);
+  end
+  # Normilize Vektor
+  binomialWeightsx /= sum(binomialWeightsx);
+
+  #Calculate the binomial Weights in y direction
+  for i=1:size[2]
+    binomialWeightsy[i] = binomial(size[2]-1, i-1);
+  end
+  # Normilize Vektor
+  binomialWeightsy /= sum(binomialWeightsy);
+
+  # Multiplay the two nomilized vektors to get the filter
+  f = binomialWeightsy*binomialWeightsx';
   return f::Array{Float64,2}
 end
 
@@ -60,51 +85,54 @@ end
 
 
 # Problem 1: Image Pyramids and Image Sharpening
-
-function problem1()
-  # parameters
-  fsize = [?, ?]
-  sigma = ?
-  nlevels = ?
-
-  # load image
-  im = PyPlot.imread("../data-julia/a2p1.png")
-
-  # create gaussian pyramid
-  G = makegaussianpyramid(im,nlevels,fsize,sigma)
-
-  # display gaussianpyramid
-  displaypyramid(G)
-  title("Gaussian Pyramid")
-
-  # create laplacian pyramid
-  L = makelaplacianpyramid(G,nlevels,fsize)
-
-  # dispaly laplacian pyramid
-  displaypyramid(L)
-  title("Laplacian Pyramid")
-
-  # amplify finest 2 subands
-  L_amp = amplifyhighfreq2(L)
-
-  # reconstruct image from laplacian pyramid
-  im_rec = reconstructlaplacianpyramid(L_amp,fsize)
-
-  # display original and reconstructed image
-  figure()
-  subplot(131)
-  imshow(im,"gray",interpolation="none")
-  axis("off")
-  title("Original Image")
-  subplot(132)
-  imshow(im_rec,"gray",interpolation="none")
-  axis("off")
-  title("Reconstructed Image")
-  subplot(133)
-  imshow(im-im_rec,"gray",interpolation="none")
-  axis("off")
-  title("Difference")
-  gcf()
-
-  return
-end
+#
+# function problem1()
+#   # parameters
+#   fsize = [?, ?]
+#   sigma = ?
+#   nlevels = ?
+#
+#   # load image
+#   im = PyPlot.imread("../data-julia/a2p1.png")
+#
+#   # create gaussian pyramid
+#   G = makegaussianpyramid(im,nlevels,fsize,sigma)
+#
+#   # display gaussianpyramid
+#   displaypyramid(G)
+#   title("Gaussian Pyramid")
+#
+#   # create laplacian pyramid
+#   L = makelaplacianpyramid(G,nlevels,fsize)
+#
+#   # dispaly laplacian pyramid
+#   displaypyramid(L)
+#   title("Laplacian Pyramid")
+#
+#   # amplify finest 2 subands
+#   L_amp = amplifyhighfreq2(L)
+#
+#   # reconstruct image from laplacian pyramid
+#   im_rec = reconstructlaplacianpyramid(L_amp,fsize)
+#
+#   # display original and reconstructed image
+#   figure()
+#   subplot(131)
+#   imshow(im,"gray",interpolation="none")
+#   axis("off")
+#   title("Original Image")
+#   subplot(132)
+#   imshow(im_rec,"gray",interpolation="none")
+#   axis("off")
+#   title("Reconstructed Image")
+#   subplot(133)
+#   imshow(im-im_rec,"gray",interpolation="none")
+#   axis("off")
+#   title("Difference")
+#   gcf()
+#
+#   return
+# end
+display(makebinomialfilter([3 3]))
+display(sum(makebinomialfilter([3 3])))
+surf(makebinomialfilter([4 40]))
