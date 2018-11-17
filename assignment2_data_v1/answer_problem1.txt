@@ -1,0 +1,14 @@
+7.  They are both the same image so there is no difference. This Image carries
+    the base information of the original Image, meaning base Brightness. Each
+    Iteration of the reconstruction adds more detail to the Image.
+
+8.  We ended up at scaling both layers by two which resulted in a pleasing result
+    optically. When the first layer is scaled too much, the noise get amplified a
+    lot resulting in a grainy image. When we turn up the second layer to much,
+    the image gets blurry because we amplify more lower frequency changes.
+    To make the effect more visible we also looked at the Image 2*im-im_rec,
+    which should result in a blurry image if im_rec is sharper than im. Because
+    im_sharp = (im-im_blur)+im. In our case im_sharp is im_rec an we want to look
+    at im_blur. Also perceived sharpness not only depends on the actual line width,
+    but also in contrast an overall brightness. So to visually compare the two
+    images they should be brought the the same overall brightness and contrast.
