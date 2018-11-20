@@ -23,14 +23,16 @@ function loadfaces()
   end
   n = length(img_files)
   #load Images from File List and append to Matrix
-  data = zeros(length(img_files), img_w*img_h) #allocate memory for data Matrix
+  data = zeros(img_w*img_h, length(img_files)) #allocate memory for data Matrix
   for i=1:length(img_files)
     img = open(img_files[i]) #load image
     readline(img) #Header
     imdata = read(img, img_w*img_h) #read bytes from image
     imdata = convert(Array{Float64,1}, imdata)
-    data[i,:] = imdata
+    data[:,i] = imdata
   end
+  print("Data size:")
+  println(size(data))
   return data::Array{Float64,2},facedim::Array{Int},n::Int
 end
 
@@ -38,26 +40,34 @@ end
 # Return the eigenvectors of covariance matrix of the data, the corresponding eigenvalues,
 # the one-dimensional mean data matrix and a cumulated variance vector in increasing order.
 function computepca(data::Array{Float64,2})
-  N,M = size(data) #M: Columns; N: Rows of data Matrix
+  M,N = size(data) #M: Rows; N: Columns of data Matrix
   #Calculate the mean:
-  mu = zeros(1, M)
-  mu = mean(data, dims=1)
+  mu = zeros(1, N)
+  mu = mean(data, dims=2)
+  print("Sizeof mu:")
+  println(size(mu))
   #Calculate deviations from mean:
-  x = zeros(N,M)
+  x = zeros(M,N)
   x = data .- mu
   ##Calculate covariance matrix:##
-  #covar = zeros(N,N)
+  #covar = zeros(M,M)
   #covar = 1/N * x*x'
   #SVD:
-  U, S, V = svd(x)
+  U, S, V = svd(x, full=true)
+  print("Sizeof U:")
+  println(size(U))
+  print("Sizeof V:")
+  println(size(V))
   lambda = 1/N * S.^0.5
   #Sort eigenvectors and eigenvalues:
   sortp = sortperm(S)
+  println(sortp)
   lambda = S[sortp]
-  U = U[:,sortp]
+  # U = U[:,sortp] #U is already sorted???
   #Calculate cumulated variance from cumsum(eigenvectors):
-  cumvar = cumsum(S, dims=1)
-  plot(lambda)
+  cumvar = cumsum(lambda, dims=1)
+  print("Sizeof U:")
+  println(size(U))
   return U::Array{Float64,2},lambda::Array{Float64,1},mu::Array{Float64,2},cumvar::Array{Float64,1}
 end
 
@@ -80,14 +90,32 @@ end
 
 # Display the mean face and the first 10 Eigenfaces in a single figure
 function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{Int})
-
-  return nothing::Nothing
+  #Meanface:
+  meanface = reshape(mu, facedim[1], facedim[2])
+  figure()
+  imshow(meanface)
+  title("Meanface")
+  #First 10 Eigenfaces:
+  # grid, frames, canvases = canvasgrid((2,5))
+  # eigenfaces = zeros(facedim[1], facedim[2])
+  # for i=1:10
+  #   # figure()
+  #   eigenfaces = eigenfaces .* reshape(U[:,i], facedim[1], facedim[2])
+  #   # imshow(eigenface)
+  #   # title(string("Eigenface ", i))
+  # end
+  figure()
+  title("Eigenface 1")
+  imshow(reshape(U[:,1], facedim[1], facedim[2]))
+  figure()
+  title("Eigenface 2")
+  imshow(meanface + reshape(U[:,2], facedim[1], facedim[2]))
 end
 
 
 # Fetch a single face with given index out of the data matrix
 function takeface(data::Array{Float64,2},facedim::Array{Int},n::Int)
-
+  face = reshape(data(:,n), facedim[1], facedim[2])
   return face::Array{Float64,2}
 end
 
@@ -114,20 +142,20 @@ function problem2()
   # compute PCA
   U,lambda,mu,cumvar = computepca(data)
 
-  # # plot cumulative variance
-  # plotcumvar(cumvar)
-  #
-  # # compute necessary components for 75% / 99% variance coverage
-  # n75,n99 = computecomponents(cumvar)
-  # println(@sprintf("Necssary components for 75%% variance coverage: %i", n75))
-  # println(@sprintf("Necssary components for 99%% variance coverage: %i", n99))
-  #
-  # # plot mean face and first 10 Eigenfaces
-  # showeigenfaces(U,mu,facedim)
-  #
-  # # get a random face
-  # faceim = takeface(data,facedim,rand(1:N))
-  #
+  # plot cumulative variance
+  plotcumvar(cumvar)
+
+  # compute necessary components for 75% / 99% variance coverage
+  n75,n99 = computecomponents(cumvar)
+  println(@sprintf("Necssary components for 75%% variance coverage: %i", n75))
+  println(@sprintf("Necssary components for 99%% variance coverage: %i", n99))
+
+  # plot mean face and first 10 Eigenfaces
+  showeigenfaces(U,mu,facedim)
+
+  # get a random face
+  faceim = takeface(data,facedim,rand(1:N))
+
   # # reconstruct the face with 5, 15, 50, 150 principal components
   # f5 = computereconstruction(faceim,U,mu,5)
   # f15 = computereconstruction(faceim,U,mu,15)
