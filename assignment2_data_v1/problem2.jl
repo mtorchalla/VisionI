@@ -45,29 +45,35 @@ function computepca(data::Array{Float64,2})
   #Calculate deviations from mean:
   x = zeros(N,M)
   x = data .- mu
-  #Calculate covariance matrix:
-  covar = zeros(N,N)
-  covar = 1/N * x*x'
-  U, S, V = svd(covar)
+  ##Calculate covariance matrix:##
+  #covar = zeros(N,N)
+  #covar = 1/N * x*x'
+  #SVD:
+  U, S, V = svd(x)
+  lambda = 1/N * S.^0.5
   #Sort eigenvectors and eigenvalues:
   sortp = sortperm(S)
   lambda = S[sortp]
   U = U[:,sortp]
   #Calculate cumulated variance from cumsum(eigenvectors):
-  cumvar = cumsort(S, dims=1)
+  cumvar = cumsum(S, dims=1)
+  plot(lambda)
   return U::Array{Float64,2},lambda::Array{Float64,1},mu::Array{Float64,2},cumvar::Array{Float64,1}
 end
 
 # Plot the cumulative variance of the principal components
 function plotcumvar(cumvar::Array{Float64,1})
-
+  PyPlot.plot(cumvar)
+  title("Cumulative variance of principal components")
   return nothing::Nothing
 end
 
 
 # Compute required number of components to account for (at least) 75/99% of the variance
 function computecomponents(cumvar::Array{Float64,1})
-
+  total = cumvar[end]
+  n75 = length(cumvar[cumvar .< 0.75*total])
+  n99 = length(cumvar[cumvar .< 0.99*total])
   return n75::Int,n99::Int
 end
 
