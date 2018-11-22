@@ -53,21 +53,24 @@ function computepca(data::Array{Float64,2})
   #covar = zeros(M,M)
   #covar = 1/N * x*x'
   #SVD:
-  U, S, V = svd(x, full=true)
+  U, S, V = svd(x, full=false)
   print("Sizeof U:")
   println(size(U))
   print("Sizeof V:")
   println(size(V))
-  lambda = 1/N * S.^0.5
+  lambda = 1/N * S.^2
+  # figure()
+  # plot(lambda)
+  # title("L")
   #Sort eigenvectors and eigenvalues:
   sortp = sortperm(S)
-  println(sortp)
+  # println(sortp)
   lambda = S[sortp]
   # U = U[:,sortp] #U is already sorted???
   #Calculate cumulated variance from cumsum(eigenvectors):
   cumvar = cumsum(lambda, dims=1)
-  print("Sizeof U:")
-  println(size(U))
+  # print("Sizeof U:")
+  # println(size(U))
   return U::Array{Float64,2},lambda::Array{Float64,1},mu::Array{Float64,2},cumvar::Array{Float64,1}
 end
 
@@ -91,10 +94,11 @@ end
 # Display the mean face and the first 10 Eigenfaces in a single figure
 function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{Int})
   #Meanface:
-  meanface = reshape(mu, facedim[1], facedim[2])
   figure()
-  imshow(meanface)
-  title("Meanface")
+  suptitle("Meanface and first 10 eigenfaces")
+  PyPlot.subplot(432) #SubPlot: 2 Rows, 2 Columns, Index 1
+  meanface = reshape(mu, facedim[1], facedim[2])
+  imshow(meanface, cmap="gray")
   #First 10 Eigenfaces:
   # grid, frames, canvases = canvasgrid((2,5))
   # eigenfaces = zeros(facedim[1], facedim[2])
@@ -104,18 +108,32 @@ function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{
   #   # imshow(eigenface)
   #   # title(string("Eigenface ", i))
   # end
-  figure()
-  title("Eigenface 1")
-  imshow(reshape(U[:,1], facedim[1], facedim[2]))
-  figure()
-  title("Eigenface 2")
-  imshow(meanface + reshape(U[:,2], facedim[1], facedim[2]))
+  PyPlot.subplot(434)
+  imshow(reshape(U[:,1], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(435)
+  imshow(reshape(U[:,2], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(436)
+  imshow(reshape(U[:,3], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(436)
+  imshow(reshape(U[:,4], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(437)
+  imshow(reshape(U[:,5], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(438)
+  imshow(reshape(U[:,6], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(439)
+  imshow(reshape(U[:,7], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(4,3,10)
+  imshow(reshape(U[:,8], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(4,3,11)
+  imshow(reshape(U[:,9], facedim[1], facedim[2]), cmap="gray")
+  PyPlot.subplot(4,3,12)
+  imshow(reshape(U[:,10], facedim[1], facedim[2]), cmap="gray")
 end
 
 
 # Fetch a single face with given index out of the data matrix
 function takeface(data::Array{Float64,2},facedim::Array{Int},n::Int)
-  face = reshape(data(:,n), facedim[1], facedim[2])
+  face = reshape(data[:,n], facedim[1], facedim[2])
   return face::Array{Float64,2}
 end
 
@@ -123,13 +141,27 @@ end
 # Project a given face into the low-dimensional space with a given number of principal
 # components and reconstruct it afterwards
 function computereconstruction(faceim::Array{Float64,2},U::Array{Float64,2},mu::Array{Float64,2},n::Int)
-
+  # a = zeros(n,1)
+  recon = mu
+  for i=1:n
+    a = Matrix(U[:,i]') * (vec(faceim)-mu)
+    recon += a[1,1] * U[:,i]
+  end
   return recon::Array{Float64,2}
 end
 
 # Display all reconstructed faces in a single figure
 function showreconstructedfaces(faceim, f5, f15, f50, f150)
-
+  figure()
+  suptitle("Reconstructed Faces for 5, 15, 50 and 150 components")
+  PyPlot.subplot(221) #SubPlot: 2 Rows, 2 Columns, Index 1
+  imshow(reshape(f5, 84, 96), cmap="gray")
+  PyPlot.subplot(222)
+  imshow(reshape(f15, 84, 96), cmap="gray")
+  PyPlot.subplot(223)
+  imshow(reshape(f50, 84, 96), cmap="gray")
+  PyPlot.subplot(224)
+  imshow(reshape(f150, 84, 96), cmap="gray")
   return nothing::Nothing
 end
 
@@ -156,16 +188,16 @@ function problem2()
   # get a random face
   faceim = takeface(data,facedim,rand(1:N))
 
-  # # reconstruct the face with 5, 15, 50, 150 principal components
-  # f5 = computereconstruction(faceim,U,mu,5)
-  # f15 = computereconstruction(faceim,U,mu,15)
-  # f50 = computereconstruction(faceim,U,mu,50)
-  # f150 = computereconstruction(faceim,U,mu,150)
-  #
-  # # display the reconstructed faces
-  # showreconstructedfaces(faceim, f5, f15, f50, f150)
-  #
-  # return
+  # reconstruct the face with 5, 15, 50, 150 principal components
+  f5 = computereconstruction(faceim,U,mu,5)
+  f15 = computereconstruction(faceim,U,mu,15)
+  f50 = computereconstruction(faceim,U,mu,50)
+  f150 = computereconstruction(faceim,U,mu,150)
+
+  # display the reconstructed faces
+  showreconstructedfaces(faceim, f5, f15, f50, f150)
+
+  return
 end
 
 problem2()
