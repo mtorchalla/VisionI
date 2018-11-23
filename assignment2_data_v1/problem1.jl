@@ -181,8 +181,8 @@ function problem1()
   sigma = 1.4
   nlevels = 6
 #
-#   # load image      remove:assignment2_data_v1/
-  im = PyPlot.imread("assignment2_data_v1/a2p1.png") # For some Reason It only works with this path for me "assignment2_data_v1/a2p1.png"
+#   # load image
+  im = PyPlot.imread("a2p1.png")
 
 #   # create gaussian pyramid
   G = makegaussianpyramid(im,nlevels,fsize,sigma)
@@ -226,12 +226,5 @@ function problem1()
 #
   return
 end
-# display(makebinomialfilter([3 3]))
-PyPlot.close("all")
+
 problem1()
-# display(makebinomialfilter([6 1]))
-# surf(makebinomialfilter([9 9]))
-# display(makegaussianfilter([5 1],1.0))
-# surf(makegaussianfilter([10 10],0.2))
-# surf(makegaussianfilter([11 11],0.2))
-# makegaussianfilter([4 4],0.6)

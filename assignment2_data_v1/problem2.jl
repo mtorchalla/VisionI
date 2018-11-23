@@ -8,7 +8,7 @@ using Statistics
 # where M is the number of pixels per face image and N is the number of images.
 # Also return the dimensions of a single face image and the number of all face images
 function loadfaces()
-  faceDir = "assignment2_data_v1/yale_faces/" # For some reason I(Tobi) need this path "assignment2_data_v1/yale_faces/" for it to work
+  faceDir = "yale_faces/"
   imfolders = readdir(faceDir)
   img_w = 84 #Assuming all img have same width and height
   img_h = 96
