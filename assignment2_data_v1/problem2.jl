@@ -98,7 +98,9 @@ function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{
   suptitle("Meanface and first 10 eigenfaces")
   PyPlot.subplot(432) #SubPlot: 2 Rows, 2 Columns, Index 1
   meanface = reshape(mu, facedim[1], facedim[2])
-  imshow(meanface, cmap="gray")
+  imshow(meanface'[:,end:-1:1], cmap="gray")
+  axis("off")
+  title("Meanface",fontsize=7)
   #First 10 Eigenfaces:
   # grid, frames, canvases = canvasgrid((2,5))
   # eigenfaces = zeros(facedim[1], facedim[2])
@@ -109,25 +111,55 @@ function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{
   #   # title(string("Eigenface ", i))
   # end
   PyPlot.subplot(434)
-  imshow(reshape(U[:,1], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,1], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 1",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(435)
-  imshow(reshape(U[:,2], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,2], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 2",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(436)
-  imshow(reshape(U[:,3], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,3], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 3",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(436)
-  imshow(reshape(U[:,4], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,4], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 4",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(437)
-  imshow(reshape(U[:,5], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,5], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 5",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(438)
-  imshow(reshape(U[:,6], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,6], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 6",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(439)
-  imshow(reshape(U[:,7], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,7], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 7",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(4,3,10)
-  imshow(reshape(U[:,8], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,8], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 8",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(4,3,11)
-  imshow(reshape(U[:,9], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,9], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 9",fontsize=7)
+  axis("off")
+
   PyPlot.subplot(4,3,12)
-  imshow(reshape(U[:,10], facedim[1], facedim[2]), cmap="gray")
+  imshow(reshape(U[:,10], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
+  title("PC 10",fontsize=7)
+  axis("off")
+
 end
 
 
@@ -154,14 +186,27 @@ end
 function showreconstructedfaces(faceim, f5, f15, f50, f150)
   figure()
   suptitle("Reconstructed Faces for 5, 15, 50 and 150 components")
+
   PyPlot.subplot(221) #SubPlot: 2 Rows, 2 Columns, Index 1
-  imshow(reshape(f5, 84, 96), cmap="gray")
+  imshow(reshape(f5, 84, 96)'[:,end:-1:1], cmap="gray")
+  title("5 Components",fontsize=10)
+  axis("off")
+
   PyPlot.subplot(222)
-  imshow(reshape(f15, 84, 96), cmap="gray")
+  imshow(reshape(f15, 84, 96)'[:,end:-1:1], cmap="gray")
+  title("15 Components",fontsize=10)
+  axis("off")
+
   PyPlot.subplot(223)
-  imshow(reshape(f50, 84, 96), cmap="gray")
+  imshow(reshape(f50, 84, 96)'[:,end:-1:1], cmap="gray")
+  title("50 Components",fontsize=10)
+  axis("off")
+
   PyPlot.subplot(224)
-  imshow(reshape(f150, 84, 96), cmap="gray")
+  imshow(reshape(f150, 84, 96)'[:,end:-1:1], cmap="gray")
+  title("150 Components",fontsize=10)
+  axis("off")
+
   return nothing::Nothing
 end
 
@@ -186,7 +231,7 @@ function problem2()
   showeigenfaces(U,mu,facedim)
 
   # get a random face
-  faceim = takeface(data,facedim,10)#rand(1:N))
+  faceim = takeface(data,facedim,1)#rand(1:N))
 
   # reconstruct the face with 5, 15, 50, 150 principal components
   f5 = computereconstruction(faceim,U,mu,5)

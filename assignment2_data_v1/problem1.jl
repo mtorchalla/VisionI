@@ -68,6 +68,7 @@ end
 
 # Downsample an image by a factor of 2
 function downsample2(A::Array{Float64,2})
+  # Every second row and column is skipped
   D = A[ 1:2:size(A)[1] , 1:2:size(A)[2] ]
   return D::Array{Float64,2}
 end
@@ -81,7 +82,9 @@ function upsample2(A::Array{Float64,2},fsize::Array{Int,2})
   U[1:2:size(U)[1],1:2:size(U)[2]] = A;
   #   Create the binomial Filter
   filter = makebinomialfilter(fsize);
+  # Use the binomal filter to calclute the missing not defined fields of the upscaled image
   U = imfilter(U,centered(filter), "reflect")
+  # Scale every Value by 4
   U = U*4;
   return U::Array{Float64,2}
 
@@ -93,11 +96,11 @@ function makegaussianpyramid(im::Array{Float32,2},nlevels::Int,fsize::Array{Int,
 
   #   Create Gaussian Filter
   gaussianFilter = makegaussianfilter(fsize,sigma);
-  #   Create empty shells for the pyramid Images
+  #   Create empty shells for the pyramid Images with decreasing size
   G = [zeros( Int(round(size(im)[1]/(2^i),RoundUp)) , Int(round(size(im)[2]/(2^i),RoundUp)) ) for i = 0:nlevels-1]
-  #   Save original image inn first layer
+  #   Save original image in the first layer
   G[1] = im;
-  #   Save filtered and downsampled iamges in the relative pyramid space
+  #   Save filtered and downsampled iamges in the appropriate pyramid level
   for i = 2:nlevels
     #   Apply Gaussian Filter
     im = imfilter(im,centered(gaussianFilter),"symmetric");
@@ -138,8 +141,9 @@ end
 # Build a laplacian pyramid from a gaussian pyramid.
 # The output array should contain the pyramid levels in decreasing sizes.
 function makelaplacianpyramid(G::Array{Array{Float64,2},1},nlevels::Int,fsize::Array{Int,2})
+  # The smalles image stays the same and is saved in the top level of the laplacian Pyramid
   L = G
-  #   Calculate each Lapacian Image
+  #   Calculate and overwrite each Lapacian Image
   for i = 1:nlevels-1
     L[i] = G[i]-upsample2(G[i+1],fsize);
   end
@@ -164,10 +168,13 @@ end
 
 # Reconstruct an image from the laplacian pyramid
 function reconstructlaplacianpyramid(L::Array{Array{Float64,2},1},fsize::Array{Int,2})
+  # The Top layer again stays the same because it is the Original Top layer
   G = L;
+  # Each step down the Pyramid is iteratively calculated from previous levels
   for i = size(L)[1]-1:-1:1
     G[i] = L[i] + upsample2(G[i+1],fsize)
   end
+  # The fully reconstructed (bottom layer) image is saved to the output image
   im = G[1];
   return im::Array{Float64,2}
 end
