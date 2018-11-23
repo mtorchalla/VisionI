@@ -5,16 +5,15 @@ using PyPlot
 
 # Create a gaussian filter
 function makegaussianfilter(size::Array{Int,2},sigma::Float64)
-  # TODO EVEN filter mask maximum -1 1 or 0 0
   # Gaussian filter in x and y direction
   # X direction
   gaussx = collect(1:size[2]).-(round(size[2]/2,RoundUp))
-  # display(gaussx)
+
+  # If the filter size is Even,everything must be shifted by -0.5 to have 0 a Center maximum
   if size[2]%2==0
-    # gaussx[1:Int(size[1]/2)] = gaussx[1:Int(size[1]/2)].-1;
     gaussx = gaussx.-0.5;
-    # display(gaussx)
   end
+
   for i=1:size[2]
     gaussx[i] = exp(-((gaussx[i]^2)/(2*sigma^2)))
   end
@@ -23,8 +22,8 @@ function makegaussianfilter(size::Array{Int,2},sigma::Float64)
   # Y direction
   gaussy = collect(1:size[1]).-(round(size[1]/2,RoundUp))
 
+  # If the filter size is Even,everything must be shifted by -0.5 to have 0 a Center maximum
   if size[1]%2==0
-    # gaussy[1:Int(size[2]/2)] = gaussy[1:Int(size[2]/2)].-1;
     gaussy = gaussy.-0.5;
   end
 
@@ -32,9 +31,9 @@ function makegaussianfilter(size::Array{Int,2},sigma::Float64)
     gaussy[i] = exp(-(gaussy[i]^2)/(2*sigma^2))
   end
 
+  # Calculate the filter Matrix and Normalize it
   gaussF = gaussy*gaussx';
   gaussF = gaussF/sum(gaussF)
-  # display(sum(gaussF))
   f = gaussF;
 
   return f::Array{Float64,2}
@@ -45,12 +44,13 @@ function makebinomialfilter(size::Array{Int,2})
   binomialWeightsx = zeros(size[2]);
   binomialWeightsy = zeros(size[1]);
 
-  #Pascals triangle reason for the shift -1 TODO Remove
+
 
   #Calculate the binomial Weights in x direction
   for i=1:size[2]
-    binomialWeightsx[i] = binomial(size[2]-1, i-1);
+    binomialWeightsx[i] = binomial(size[2]-1, i-1); # Shift -1 is used because the the number of binomal coefficeints is n+1 and k runs from 0 to n
   end
+
   # Normilize Vektor
   binomialWeightsx /= sum(binomialWeightsx);
 
@@ -182,7 +182,7 @@ function problem1()
   nlevels = 6
 #
 #   # load image      remove:assignment2_data_v1/
-  im = PyPlot.imread("assignment2_data_v1/a2p1.png")
+  im = PyPlot.imread("assignment2_data_v1/a2p1.png") # For some Reason It only works with this path for me "assignment2_data_v1/a2p1.png"
 
 #   # create gaussian pyramid
   G = makegaussianpyramid(im,nlevels,fsize,sigma)

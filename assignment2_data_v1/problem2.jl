@@ -8,7 +8,7 @@ using Statistics
 # where M is the number of pixels per face image and N is the number of images.
 # Also return the dimensions of a single face image and the number of all face images
 function loadfaces()
-  faceDir = "yale_faces/"
+  faceDir = "assignment2_data_v1/yale_faces/" # For some reason I(Tobi) need this path "assignment2_data_v1/yale_faces/" for it to work
   imfolders = readdir(faceDir)
   img_w = 84 #Assuming all img have same width and height
   img_h = 96
@@ -42,12 +42,12 @@ end
 function computepca(data::Array{Float64,2})
   M,N = size(data) #M: Rows; N: Columns of data Matrix
   #Calculate the mean:
-  mu = zeros(1, N)
+  mu = zeros(1, N) ###################  Not Needed and if used should be zeros(M,1)
   mu = mean(data, dims=2)
   print("Sizeof mu:")
   println(size(mu))
   #Calculate deviations from mean:
-  x = zeros(M,N)
+  x = zeros(M,N) #################### Also not needed
   x = data .- mu
   ##Calculate covariance matrix:##
   #covar = zeros(M,M)
@@ -65,7 +65,7 @@ function computepca(data::Array{Float64,2})
   #Sort eigenvectors and eigenvalues:
   sortp = sortperm(S)
   # println(sortp)
-  lambda = S[sortp]
+  lambda = S[sortp] ####################### Why Only S and not 1/N *S.^2 again
   # U = U[:,sortp] #U is already sorted???
   #Calculate cumulated variance from cumsum(eigenvectors):
   cumvar = cumsum(lambda, dims=1)
@@ -144,8 +144,8 @@ function computereconstruction(faceim::Array{Float64,2},U::Array{Float64,2},mu::
   # a = zeros(n,1)
   recon = mu
   for i=1:n
-    a = Matrix(U[:,i]') * (vec(faceim)-mu)
-    recon += a[1,1] * U[:,i]
+    a = Matrix(U[:,i]') * (vec(faceim)-mu) ###########################
+    recon += a[1,1] * U[:,i] # a should only be a scalar right?
   end
   return recon::Array{Float64,2}
 end
@@ -186,7 +186,7 @@ function problem2()
   showeigenfaces(U,mu,facedim)
 
   # get a random face
-  faceim = takeface(data,facedim,rand(1:N))
+  faceim = takeface(data,facedim,10)#rand(1:N))
 
   # reconstruct the face with 5, 15, 50, 150 principal components
   f5 = computereconstruction(faceim,U,mu,5)
