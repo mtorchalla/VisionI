@@ -10,8 +10,8 @@ using Statistics
 function loadfaces()
   faceDir = "yale_faces/"
   imfolders = readdir(faceDir)
-  img_w = 84 #Assuming all img have same width and height
-  img_h = 96
+  img_w = 84  #Assuming all img have same width and height
+  img_h = 96  #Get Dimensions by reading the first line of the images
   facedim = [img_w; img_h]
   #Get all image files
   img_files = []
@@ -43,21 +43,18 @@ function computepca(data::Array{Float64,2})
   mu = mean(data, dims=2)
   #Calculate deviations from mean:
   x = data .- mu
-  ##Calculate covariance matrix:##
+  ##Calculate covariance matrix:## -> not needed because of SVD!
   #covar = zeros(M,M)
   #covar = 1/N * x*x'
   #SVD:
   U, S, V = svd(x, full=false)
   lambda = 1/N * S.^2
-  # figure()
-  # plot(lambda)
-  # title("L")
   #Sort eigenvectors and eigenvalues:
-  sortp = sortperm(S)[end:-1:1] #EW (S) & EV (U) are already sorted, do it anyway..
+  sortp = sortperm(S)[end:-1:1] #EW (S) & EV (U) are already sorted by SVD, do it anyway..
   lambda = lambda[sortp]
   U = U[:,sortp]
   #Calculate cumulated variance from cumsum(eigenvectors):
-  cumvar = cumsum(lambda[sortp], dims=1)
+  cumvar = cumsum(lambda, dims=1)
   return U::Array{Float64,2},lambda::Array{Float64,1},mu::Array{Float64,2},cumvar::Array{Float64,1}
 end
 
@@ -86,7 +83,7 @@ function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{
   PyPlot.subplot(432) #SubPlot: 2 Rows, 2 Columns, Index 1
   meanface = reshape(mu, facedim[1], facedim[2])
   axis("off")
-  imshow(meanface'[:,end:-1:1], cmap="gray")
+  imshow(meanface'[:,end:-1:1], cmap="gray") #Rotate the img 90°
   title("Meanface",fontsize=7)
 
   #First 10 Eigenfaces:
@@ -139,7 +136,6 @@ function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{
   imshow(reshape(U[:,10], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
   title("PC 10",fontsize=7)
   axis("off")
-
 end
 
 
