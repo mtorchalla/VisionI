@@ -31,8 +31,6 @@ function loadfaces()
     imdata = convert(Array{Float64,1}, imdata)
     data[:,i] = imdata
   end
-  print("Data size:")
-  println(size(data))
   return data::Array{Float64,2},facedim::Array{Int},n::Int
 end
 
@@ -42,35 +40,24 @@ end
 function computepca(data::Array{Float64,2})
   M,N = size(data) #M: Rows; N: Columns of data Matrix
   #Calculate the mean:
-  mu = zeros(1, N) ###################  Not Needed and if used should be zeros(M,1)
   mu = mean(data, dims=2)
-  print("Sizeof mu:")
-  println(size(mu))
   #Calculate deviations from mean:
-  x = zeros(M,N) #################### Also not needed
   x = data .- mu
   ##Calculate covariance matrix:##
   #covar = zeros(M,M)
   #covar = 1/N * x*x'
   #SVD:
   U, S, V = svd(x, full=false)
-  print("Sizeof U:")
-  println(size(U))
-  print("Sizeof V:")
-  println(size(V))
   lambda = 1/N * S.^2
   # figure()
   # plot(lambda)
   # title("L")
   #Sort eigenvectors and eigenvalues:
-  sortp = sortperm(S)
-  # println(sortp)
-  lambda = S[sortp] ####################### Why Only S and not 1/N *S.^2 again
-  # U = U[:,sortp] #U is already sorted???
+  sortp = sortperm(S)[end:-1:1] #EW (S) & EV (U) are already sorted, do it anyway..
+  lambda = lambda[sortp]
+  U = U[:,sortp]
   #Calculate cumulated variance from cumsum(eigenvectors):
-  cumvar = cumsum(lambda, dims=1)
-  # print("Sizeof U:")
-  # println(size(U))
+  cumvar = cumsum(lambda[sortp], dims=1)
   return U::Array{Float64,2},lambda::Array{Float64,1},mu::Array{Float64,2},cumvar::Array{Float64,1}
 end
 
@@ -98,18 +85,11 @@ function showeigenfaces(U::Array{Float64,2},mu::Array{Float64,2},facedim::Array{
   suptitle("Meanface and first 10 eigenfaces")
   PyPlot.subplot(432) #SubPlot: 2 Rows, 2 Columns, Index 1
   meanface = reshape(mu, facedim[1], facedim[2])
-  imshow(meanface'[:,end:-1:1], cmap="gray")
   axis("off")
+  imshow(meanface'[:,end:-1:1], cmap="gray")
   title("Meanface",fontsize=7)
+
   #First 10 Eigenfaces:
-  # grid, frames, canvases = canvasgrid((2,5))
-  # eigenfaces = zeros(facedim[1], facedim[2])
-  # for i=1:10
-  #   # figure()
-  #   eigenfaces = eigenfaces .* reshape(U[:,i], facedim[1], facedim[2])
-  #   # imshow(eigenface)
-  #   # title(string("Eigenface ", i))
-  # end
   PyPlot.subplot(434)
   imshow(reshape(U[:,1], facedim[1], facedim[2])'[:,end:-1:1], cmap="gray")
   title("PC 1",fontsize=7)
@@ -173,12 +153,13 @@ end
 # Project a given face into the low-dimensional space with a given number of principal
 # components and reconstruct it afterwards
 function computereconstruction(faceim::Array{Float64,2},U::Array{Float64,2},mu::Array{Float64,2},n::Int)
-  # a = zeros(n,1)
+  facedim = size(faceim)
   recon = mu
   for i=1:n
-    a = Matrix(U[:,i]') * (vec(faceim)-mu) ###########################
-    recon += a[1,1] * U[:,i] # a should only be a scalar right?
+    a = Matrix(U[:,i]') * (vec(faceim)-mu)
+    recon += a .* U[:,i]
   end
+  recon = reshape(recon, facedim[1], facedim[2])'[:,end:-1:1]
   return recon::Array{Float64,2}
 end
 
@@ -187,23 +168,28 @@ function showreconstructedfaces(faceim, f5, f15, f50, f150)
   figure()
   suptitle("Reconstructed Faces for 5, 15, 50 and 150 components")
 
-  PyPlot.subplot(221) #SubPlot: 2 Rows, 2 Columns, Index 1
-  imshow(reshape(f5, 84, 96)'[:,end:-1:1], cmap="gray")
+  PyPlot.subplot(332) #SubPlot: 2 Rows, 2 Columns, Index 1
+  imshow(faceim'[:,end:-1:1], cmap="gray")
+  title("Original Face",fontsize=10)
+  axis("off")
+
+  PyPlot.subplot(334)
+  imshow(f5, cmap="gray")
   title("5 Components",fontsize=10)
   axis("off")
 
-  PyPlot.subplot(222)
-  imshow(reshape(f15, 84, 96)'[:,end:-1:1], cmap="gray")
+  PyPlot.subplot(336)
+  imshow(f15, cmap="gray")
   title("15 Components",fontsize=10)
   axis("off")
 
-  PyPlot.subplot(223)
-  imshow(reshape(f50, 84, 96)'[:,end:-1:1], cmap="gray")
+  PyPlot.subplot(337)
+  imshow(f50, cmap="gray")
   title("50 Components",fontsize=10)
   axis("off")
 
-  PyPlot.subplot(224)
-  imshow(reshape(f150, 84, 96)'[:,end:-1:1], cmap="gray")
+  PyPlot.subplot(339)
+  imshow(f150, cmap="gray")
   title("150 Components",fontsize=10)
   axis("off")
 

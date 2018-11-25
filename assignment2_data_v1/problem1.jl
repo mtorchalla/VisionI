@@ -44,24 +44,22 @@ function makebinomialfilter(size::Array{Int,2})
   binomialWeightsx = zeros(size[2]);
   binomialWeightsy = zeros(size[1]);
 
-
-
   #Calculate the binomial Weights in x direction
   for i=1:size[2]
     binomialWeightsx[i] = binomial(size[2]-1, i-1); # Shift -1 is used because the the number of binomal coefficeints is n+1 and k runs from 0 to n
   end
 
-  # Normilize Vektor
+  # Normalize Vektor
   binomialWeightsx /= sum(binomialWeightsx);
 
   #Calculate the binomial Weights in y direction
   for i=1:size[1]
     binomialWeightsy[i] = binomial(size[1]-1, i-1);
   end
-  # Normilize Vektor
+  # Normalize Vektor
   binomialWeightsy /= sum(binomialWeightsy);
 
-  # Multiplay the two nomilized vektors to get the filter
+  # Multiply the two normalized vektors to get the filter
   f = binomialWeightsy*binomialWeightsx';
   return f::Array{Float64,2}
 end
@@ -100,7 +98,7 @@ function makegaussianpyramid(im::Array{Float32,2},nlevels::Int,fsize::Array{Int,
   G = [zeros( Int(round(size(im)[1]/(2^i),RoundUp)) , Int(round(size(im)[2]/(2^i),RoundUp)) ) for i = 0:nlevels-1]
   #   Save original image in the first layer
   G[1] = im;
-  #   Save filtered and downsampled iamges in the appropriate pyramid level
+  #   Save filtered and downsampled images in the appropriate pyramid level
   for i = 2:nlevels
     #   Apply Gaussian Filter
     im = imfilter(im,centered(gaussianFilter),"symmetric");
@@ -141,7 +139,7 @@ end
 # Build a laplacian pyramid from a gaussian pyramid.
 # The output array should contain the pyramid levels in decreasing sizes.
 function makelaplacianpyramid(G::Array{Array{Float64,2},1},nlevels::Int,fsize::Array{Int,2})
-  # The smalles image stays the same and is saved in the top level of the laplacian Pyramid
+  # The smallest image stays the same and is saved in the top level of the laplacian Pyramid
   L = G
   #   Calculate and overwrite each Lapacian Image
   for i = 1:nlevels-1
@@ -153,7 +151,6 @@ end
 # Amplify frequencies of the first two layers of the laplacian pyramid
 function amplifyhighfreq2(L::Array{Array{Float64,2},1})
   #   Amplification factor for the first layer
-
   amp1 = 2;
   #   Amplification factor for the second layer
   amp2 = 2;
