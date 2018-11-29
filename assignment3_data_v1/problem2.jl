@@ -21,8 +21,9 @@ include("Common.jl")
 #
 #---------------------------------------------------------
 function loadkeypoints(filename::String)
-
-
+  p = load(filename)
+  keypoints1 = p["keypoints1"]
+  keypoints2 = p["keypoints2"]
 
   @assert size(keypoints1,2) == 2
   @assert size(keypoints2,2) == 2
@@ -42,6 +43,16 @@ end
 #
 #---------------------------------------------------------
 function euclideansquaredist(features1::Array{Float64,2},features2::Array{Float64,2})
+  m, n = size(features1,2), size(features2,2)
+  D = zeros(m,n)
+  for i=1:m
+    D[i,:] = sum((features1[:,i] .- features2[:,:]).^2, dims=1)
+  end
+  # for i=1:m
+  #   for j=1:n
+  #     D[i,j] = sum((features1[:,i] .- features2[:,j]).^2, dims=1)[1]
+  #   end
+  # end
 
   @assert size(D) == (size(features1,2),size(features2,2))
   return D::Array{Float64,2}
@@ -63,9 +74,11 @@ end
 #
 #---------------------------------------------------------
 function findmatches(p1::Array{Int,2},p2::Array{Int,2},D::Array{Float64,2})
-
-
-
+  pairs = zeros((min(size(p1,1),size(p2,1)),4))
+  for i=1:min(size(p1,1),size(p2,1))
+    pairs[i,:] = [ p1[argmin(D[:,i]),:]; p2[i,:] ]'
+  end
+  pairs = convert(Array{Int,2}, pairs)
 
   @assert size(pairs) == (min(size(p1,1),size(p2,1)),4)
   return pairs::Array{Int,2}
@@ -84,9 +97,19 @@ end
 #
 #---------------------------------------------------------
 function showmatches(im1::Array{Float64,2},im2::Array{Float64,2},pairs::Array{Int,2})
-
-
-
+  figure()
+  subplot(121)
+  imshow(im1, "gray")
+  for i=1:size(pairs,1)
+    PyPlot.plot(pairs[i,1], pairs[i,2], "x")
+    PyPlot.text(pairs[i,1], pairs[i,2], i)
+  end
+  subplot(122)
+  imshow(im2, "gray")
+  for i=1:size(pairs,1)
+    PyPlot.plot(pairs[i,3], pairs[i,4], "x")
+    PyPlot.text(pairs[i,3], pairs[i,4], i)
+  end
   return nothing::Nothing
 end
 
@@ -331,28 +354,30 @@ function problem2()
   # show matches
   showmatches(im1,im2,pairs)
   title("Putative Matching Pairs")
-
-  # compute number of iterations for the RANSAC algorithm
-  niterations = computeransaciterations(p,k,z)
-
-  # apply RANSAC
-  bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,niterations)
-  @printf(" # of bestinliers : %d", length(bestinliers))
-  
-  # show best matches
-  showmatches(im1,im2,bestpairs)
-  title("Best 4 Matches")
-
-  # show all inliers
-  showmatches(im1,im2,pairs[bestinliers,:])
-  title("All Inliers")
-
-  # stitch images and show the result
-  showstitch(im1,im2,bestH)
-
-  # recompute homography with all inliers
-  H = refithomography(pairs,bestinliers)
-  showstitch(im1,im2,H)
+  #
+  # # compute number of iterations for the RANSAC algorithm
+  # niterations = computeransaciterations(p,k,z)
+  #
+  # # apply RANSAC
+  # bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,niterations)
+  # @printf(" # of bestinliers : %d", length(bestinliers))
+  #
+  # # show best matches
+  # showmatches(im1,im2,bestpairs)
+  # title("Best 4 Matches")
+  #
+  # # show all inliers
+  # showmatches(im1,im2,pairs[bestinliers,:])
+  # title("All Inliers")
+  #
+  # # stitch images and show the result
+  # showstitch(im1,im2,bestH)
+  #
+  # # recompute homography with all inliers
+  # H = refithomography(pairs,bestinliers)
+  # showstitch(im1,im2,H)
 
   return nothing::Nothing
 end
+
+problem2()
