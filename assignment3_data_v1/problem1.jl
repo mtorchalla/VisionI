@@ -39,18 +39,38 @@ function computehessian(img::Array{Float64,2},sigma::Float64,fsize::Int)
   gauss = Common.gauss2d(sigma,[fsize fsize]);
 
   #  Derivative Filters
-  dx = [-1. .0 1.];
-  dy = [-1.; .0; 1.];
-  ddx = ones(5)*[1. .0 -2. .0 1.];
-  ddy = [1.; .0; -2.; .0; 1.]*ones(5)';
-  dxy = dy*dx;
+  dx = (1/6)*ones(3)*[-1. .0 1.];
+  dy = (1/6)*[-1.; .0; 1.]*ones(3)';
+  # dx = [1. .0 -2. .0 1.]
+  # dy = [1.; .0; -2.; .0; 1.]
+  # ddx = (1/8)*ones(5)*[1. .0 -2. .0 1.];
+  # ddy = (1/8)*[1.; .0; -2.; .0; 1.]*ones(5)';
+  # ddx = (1)*ones(3)*[1. -2. 1.];
+  # ddy = (1)*[1.; -2.; 1.]*ones(3)';
+  # ddx = imfilter(dx,centered(dx));
+  # ddy = imfilter(dy,centered(dy));
+  # dxy = imfilter(dx,centered(dy));
 
 
-  I_xx = imfilter( imfilter(img, centered(gauss), "replicate"), centered(ddx), "replicate" );
-  I_yy = imfilter( imfilter(img, centered(gauss), "replicate"), centered(ddy), "replicate" );
-  I_xy = imfilter( imfilter(img, centered(gauss), "replicate"), centered(dxy), "replicate" );
+  I_xx = imfilter( imfilter( imfilter(img, centered(gauss), "replicate") , centered(dx), "replicate" ), centered(dx),"replicate");
+  I_yy = imfilter(imfilter( imfilter(img, centered(gauss), "replicate") , centered(dy), "replicate" ),centered(dy),"replicate");
+  # I_xx = I_x.*I_x
+  # I_yy = I_y.*I_y
+  # I_xy = imfilter( imfilter(img, centered(gauss), "replicate"), centered(dxy), "replicate" );
+  # I_x = imfilter( imfilter(img, centered(gauss), "replicate"), centered(d1x), "replicate" );
+  # I_xx = imfilter(I_x, centered(d1x), "replicate" );
+  # I_y = imfilter( imfilter(img, centered(gauss), "replicate"), centered(d1y), "replicate" );
+  # I_yy = imfilter(I_y, centered(d1y), "replicate" );
+  # I_xy = imfilter(imfilter(imfilter(img,centered(gauss),"replicate"),centered(dx),"replicate"),centered(dy),"replicate")
+  I_xy = imfilter(imfilter( imfilter(img, centered(gauss), "replicate") , centered(dx), "replicate" ),centered(dy),"replicate");
+  # I_xy = imfilter(I_xy, centered(d1y), "replicate" );
   figure()
-  imshow(imfilter(img, centered(gauss), "replicate"),"gray")
+  subplot(221)
+  imshow(I_xx,"gray")
+  subplot(222)
+  imshow(I_yy,"gray")
+  subplot(223)
+  imshow(I_xy,"gray")
   return I_xx::Array{Float64,2},I_yy::Array{Float64,2},I_xy::Array{Float64,2}
 end
 
@@ -133,7 +153,7 @@ end
 #---------------------------------------------------------
 function problem1()
   # parameters
-  sigma = 4.5               # std for presmoothing image
+  sigma = 1.0              # std for presmoothing image
   fsize = 25              # filter size for smoothing
   threshold = 10^-3           # Corner criterion threshold
 
