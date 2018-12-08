@@ -127,9 +127,11 @@ end
 #
 #---------------------------------------------------------
 function computeransaciterations(p::Float64,k::Int,z::Float64)
-
-
-
+  # Calculate the Iterations from probabilities and sample size
+  n = ( log2(1-z) ) / ( log2(1-p^k) )
+  # Round up, to get atleast n iterations, and convert to Int
+  n = Int(ceil(n))
+  print(n)
   return n::Int
 end
 
@@ -148,7 +150,22 @@ end
 #
 #---------------------------------------------------------
 function picksamples(points1::Array{Int,2},points2::Array{Int,2},k::Int)
+  samples1 = zeros(k,2)
+  samples2 = zeros(k,2)
+  r_old = zeroes(k)
+  for i=1:k
+    # Pick random point out of all remaining points
+    r = rand(1:size(points1,1))
+    while(r == any(r_old)) # Make sure smples are not picked twice
+      r = rand(1:size(points1,1))
+    end
+    # Save the random point and the corresponding one from the other image
+    samples1[i,:] = points1[r,:]
+    samples2[i,:] = points2[r,:]
 
+    # Save the random value to not pick it agin
+    r_old[i] = r
+  end
 
 
   @assert size(sample1) == (k,2)
@@ -170,10 +187,19 @@ end
 #
 #---------------------------------------------------------
 function condition(points::Array{Float64,2})
+  # Calculate Maximum of the Points
+  s = 0.5*maximum(abs.(points))
+  # Calculate Mean in x direction
+  tx = mean(points[:,1])
+  # Calculate Mean in y direction
+  ty = mean(points[:,2])
 
-
-
-
+  T = [ 1/s 0   -tx/s ;
+        0   1/s -ty/s;
+        0   0   1     ]
+  points = cart2hom(points')
+  U = T*points
+  U = U'[:,1:2]
 
   @assert size(U) == size(points)
   @assert size(T) == (3,3)
@@ -193,9 +219,33 @@ end
 #
 #---------------------------------------------------------
 function computehomography(points1::Array{Int,2}, points2::Array{Int,2})
+  # Condition the corresponding points
+  points1,T1 = condition(points1)
+  points2,T2 = condition(points2)
 
-
-
+  x = points1[1,1]
+  y = points1[1,2]
+  x1 = points2[1,1]
+  y1 = points2[1,2]
+  # Save first corresponding points in the Matrix A
+  A = [ 0   0   0   x   y   1   -x*y1   -y*y1   -y1;
+        -x  -y  -1  0   0   0    x*x1    y*x1    x1 ]
+  #     Append the other Points to A
+  for i = 2:size(points,1)
+    x = points1[i,1]
+    y = points1[i,2]
+    x1 = points2[i,1]
+    y1 = points2[i,2]
+    B = [ 0   0   0   x   y   1   -x*y1   -y*y1   -y1;
+          -x  -y  -1  0   0   0    x*x1    y*x1    x1 ]
+    A = vcat(A,B)
+  end
+  # Calculate SVD from A
+  U, S, V = svd(A,full=true)
+  # Take last Right singular Vector to construct H
+  H = [V[1:3,end]'; V[4:6,end]'; V[7:9,end]']
+  # Recondition the Homography
+  H = inv(T2)*H*T1
 
   @assert size(H) == (3,3)
   return H::Array{Float64,2}
@@ -264,6 +314,13 @@ end
 #---------------------------------------------------------
 function ransac(pairs::Array{Int,2},thresh::Float64,n::Int)
 
+  # Iterate n times
+  for i = 1:n
+    # Pick random samples
+    samples1, samples2 = picksamples(pairs[:,1:2],pairs[:,3:4])
+    # Compute the Homography for the random samples
+    H = computehomography(samples1,samples2)
+  end
 
 
 
@@ -356,7 +413,7 @@ function problem2()
   title("Putative Matching Pairs")
   #
   # # compute number of iterations for the RANSAC algorithm
-  # niterations = computeransaciterations(p,k,z)
+  niterations = computeransaciterations(p,k,z)
   #
   # # apply RANSAC
   # bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,niterations)

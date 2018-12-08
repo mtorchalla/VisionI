@@ -90,7 +90,7 @@ end
 #
 #---------------------------------------------------------
 function computecriterion(I_xx::Array{Float64,2},I_yy::Array{Float64,2},I_xy::Array{Float64,2}, sigma::Float64)
-  criterion = (I_xx.*I_yy-I_xy.^2).*sigma^4
+  criterion = (I_xx.*I_yy-I_xy.^2).*(sigma^4)
   return criterion::Array{Float64,2}
 end
 
@@ -144,6 +144,7 @@ function nonmaxsupp(criterion::Array{Float64,2}, thresh::Float64)
   i_points[:,end-4:end] .= 0
 
   rows,columns = Common.findnonzero(i_points)
+  print(size(rows))
 
   return rows::Array{Int,1},columns::Array{Int,1}
 end
@@ -197,8 +198,9 @@ function problem1(sigma)
   return nothing
 end
 PyPlot.close("all")
+problem1(6.5)
+problem1(5.5)
 problem1(4.5)
 problem1(3.5)
 problem1(2.5)
 problem1(1.5)
-problem1(5.5)
