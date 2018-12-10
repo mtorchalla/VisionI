@@ -382,9 +382,7 @@ end
 #
 #---------------------------------------------------------
 function refithomography(pairs::Array{Int64,2}, inliers::Array{Int64,1})
-
-
-
+  H = computehomography(pairs[inliers,1:2],pairs[inliers,3:4])
 
   @assert size(H) == (3,3)
   return H::Array{Float64,2}
@@ -401,9 +399,35 @@ end
 #
 #---------------------------------------------------------
 function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64,2})
+  figure()
+  stitched = 2*ones(size(im1,1),700)
+  stitched[1:size(im1,1),1:size(im1,2)] = im1
+  for y=1:size(im2,1)
+    for x=1:size(im2,2)
+      xy_new = inv(H)*[x;y;1]
 
-
-
+      xy_new = Int.(round.(Common.hom2cart(xy_new)))
+      # display(xy_new)
+      if xy_new[1]<701 && xy_new[1]>0 && xy_new[2]<300 && xy_new[2]>0
+        if stitched[xy_new[2],xy_new[1]] != 2
+          stitched[xy_new[2],xy_new[1]] = 0.5*(im2[y,x] + stitched[xy_new[2],xy_new[1]])
+        else
+          stitched[xy_new[2],xy_new[1]] = im2[y,x]
+        end
+      end
+    end
+  end
+  stitched[findall(stitched.>=2)].= 0
+  # stitched = Images.bilinear_interpolation(stitched)
+  # for i=1:5
+  #   for u=1:299
+  #     for v=1:700
+  #       stitched[u,v] = Images.bilinear_interpolation(stitched,u,v)
+  #     end
+  #   end
+  # end
+  # display(stitched)
+  imshow(stitched,"gray")
   return nothing::Nothing
 end
 
@@ -462,11 +486,11 @@ function problem2()
   title("All Inliers")
   #
   # # stitch images and show the result
-  # showstitch(im1,im2,bestH)
+  showstitch(im1,im2,bestH)
   #
   # # recompute homography with all inliers
-  # H = refithomography(pairs,bestinliers)
-  # showstitch(im1,im2,H)
+  H = refithomography(pairs,bestinliers)
+  showstitch(im1,im2,H)
 
   return nothing::Nothing
 end
