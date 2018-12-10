@@ -401,23 +401,33 @@ end
 function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64,2})
   figure()
   stitched = 2*ones(size(im1,1),700)
-  stitched[1:size(im1,1),1:size(im1,2)] = im1
-  for y=1:size(im2,1)
-    for x=1:size(im2,2)
-      xy_new = inv(H)*[x;y;1]
 
-      xy_new = Int.(round.(Common.hom2cart(xy_new)))
-      # display(xy_new)
-      if xy_new[1]<701 && xy_new[1]>0 && xy_new[2]<300 && xy_new[2]>0
-        if stitched[xy_new[2],xy_new[1]] != 2
-          stitched[xy_new[2],xy_new[1]] = 0.5*(im2[y,x] + stitched[xy_new[2],xy_new[1]])
-        else
-          stitched[xy_new[2],xy_new[1]] = im2[y,x]
-        end
+  for y=1:size(stitched,1)
+    for x=1:size(stitched,2)
+      xy_new = H*[x;y;1]
+      xy_new = Common.hom2cart(xy_new)
+      if xy_new[2]>=1 && xy_new[2]<=size(im2,1) && xy_new[1]>=1 && xy_new[1]<=size(im2,2)
+        stitched[y,x] = 0.8*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])#Birghtness adjustment
       end
     end
   end
-  stitched[findall(stitched.>=2)].= 0
+  stitched[1:size(im1,1),1:size(im1,2)] = im1[1:end,1:end];
+  # for y=1:size(im2,1)
+  #   for x=1:size(im2,2)
+  #     xy_new = inv(H)*[x;y;1]
+  #
+  #     xy_new = Int.(round.(Common.hom2cart(xy_new)))
+  #     # display(xy_new)
+  #     if xy_new[1]<701 && xy_new[1]>0 && xy_new[2]<300 && xy_new[2]>0
+  #       if stitched[xy_new[2],xy_new[1]] != 2
+  #         stitched[xy_new[2],xy_new[1]] = 0.5*(im2[y,x] + stitched[xy_new[2],xy_new[1]])
+  #       else
+  #         stitched[xy_new[2],xy_new[1]] = im2[y,x]
+  #       end
+  #     end
+  #   end
+  # end
+  # stitched[findall(stitched.>=2)].= 0
   # stitched = Images.bilinear_interpolation(stitched)
   # for i=1:5
   #   for u=1:299
