@@ -188,7 +188,7 @@ end
 #---------------------------------------------------------
 function condition(points::Array{Float64,2})
   # Calculate Maximum of the Points
-  s = 0.5*maximum(sqrt.(points[:,1].^2+points[:,2].^2))
+  s = 0.5*maximum(points)
   # Calculate Mean in x direction
   tx = mean(points[:,1])
   # Calculate Mean in y direction
@@ -197,15 +197,15 @@ function condition(points::Array{Float64,2})
   T = [ 1/s 0   -tx/s ;
         0   1/s -ty/s;
         0   0   1     ]
-  # display(T)
+  #display(T)
   points = Common.cart2hom(points')
 
   U = T*points
   points = (Common.hom2cart(points))'
-  # display(points)
+  # #display(points)
   U = (Common.hom2cart(U))'
   U = U[:,1:2]
-  # display(U)
+  # #display(U)
 
   @assert size(U) == size(points)
   @assert size(T) == (3,3)
@@ -225,41 +225,35 @@ end
 #
 #---------------------------------------------------------
 function computehomography(points1::Array{Int,2}, points2::Array{Int,2})
-  # Condition the corresponding points
-  points1,T1 = condition(Float64.(points1))
-  points2,T2 = condition(Float64.(points2))
+  U1, T1 = condition(float(points1))
+  U2, T2 = condition(float(points2))
+  A = zeros(size(U1,1)*2, 9)
+  debug = false
 
-  x = points1[1,1]
-  y = points1[1,2]
-  x1 = points2[1,1]
-  y1 = points2[1,2]
-  # Save first corresponding points in the Matrix A
-  A = [ 0   0   0   x   y   1   -x*y1   -y*y1   -y1;
-        -x  -y  -1  0   0   0    x*x1    y*x1    x1 ]
-  #     Append the other Points to A
-  for i = 2:size(points,1)
-    x = points1[i,1]
-    y = points1[i,2]
-    x1 = points2[i,1]
-    y1 = points2[i,2]
-    B = [ 0   0   0   x   y   1   -x*y1   -y*y1   -y1;
-          -x  -y  -1  0   0   0    x*x1    y*x1    x1 ]
-    A = vcat(A,B)
+  for i=1:size(U1,1)
+    A[i*2-1,:] = [       0        0  0 U1[i,1] U1[i,2] 1 -U1[i,1]*U2[i,2] -U1[i,2]*U2[i,2] -U2[i,2]]
+    A[i*2,:]   = [-U1[i,1] -U1[i,2] -1       0       0 0  U1[i,1]*U2[i,1]  U1[i,2]*U2[i,1]  U2[i,1]]
   end
-  # Calculate SVD from A
-  U, S, V = svd(A,full=true)
-  # display(V[:,end])
-  # Take last Right singular Vector to construct H
-  H = [V[1:3,end]'; V[4:6,end]'; V[7:9,end]']
-  # display(H)
-  # Recondition the Homography
-  # display(T1)
-  # display(inv(T2))
-  H = T2\H*T1
-  display(H)
-  display(det(H))
 
-  # display(sqrt(sum(H.^2)))
+  U, S, V = svd(A, full=true)
+  H_ = reshape(V[:,end], 3,3)'
+  H = inv(T2) * H_ * T1
+  if debug
+    for i=1:size(U1,1)
+      a1 = H_*[U1[i,1]; U1[i,2];1]
+      print("U1: ")
+      println(a1 ./ a1[3])
+      print("U2: ")
+      println([U2[i,1]; U2[i,2];1])
+    end
+    for i=1:size(U1,1)
+      a1 = H*[points1[i,1]; points1[i,2];1]
+      print("P1: ")
+      println(a1 ./ a1[3])
+      print("P2: ")
+      println([points2[i,1]; points2[i,2];1])
+    end
+  end
 
   @assert size(H) == (3,3)
   return H::Array{Float64,2}
@@ -284,12 +278,20 @@ function computehomographydistance(H::Array{Float64,2},points1::Array{Int,2},poi
   inv(H)
   points1H = Common.hom2cart(H*Common.cart2hom(points1'))'
   points2H = Common.hom2cart(H\Common.cart2hom(points2'))'
+  d2 = zeros(size(points1,1),1)
   # Compute Squarred difference between points in both directions
-  d2 = (points1H[:,1]-points2[:,1]).^2+(points1H[:,2]-points2[:,2]).^2+(points1[:,1]-points2H[:,1]).^2+(points1[:,2]-points2H[:,2]).^2
+  for i=1:size(points1,1)
+    d2[i] = norm(points1H[i,:]-points2[i,:])^2+norm(points1[i,:]-points2H[i,:])^2
+  end
 
 
+  # #  Provided Code from Moodle
+  # d2 = Array{Float64,2}(undef, 1, length(d2_y))
+  # d2[1, :] = d2_y
+  #display(d2)
+  # d2 = vec(d2)
   @assert length(d2) == size(points1,1)
-  return d2::Array{Float64,1}#2}
+  return d2::Array{Float64,2}
 end
 
 
@@ -305,8 +307,8 @@ end
 #  indices    indices (in distance) of inliers
 #
 #---------------------------------------------------------
-function findinliers(distance::Array{Float64,1},thresh::Float64) #2}
-  indices = findall(distance.<thresh)
+function findinliers(distance::Array{Float64,2},thresh::Float64) #2}
+  indices = findall(distance[:,1].<thresh)
   n=size(indices,1)
 
   return n::Int,indices::Array{Int,1}
@@ -337,21 +339,27 @@ function ransac(pairs::Array{Int,2},thresh::Float64,n::Int)
   bestH = 0
 
   # Iterate n times
-  for i = 1:n
-    # Pick random samples
-    samples1, samples2 = picksamples(pairs[:,1:2],pairs[:,3:4],4)
-    # Compute the Homography for the random samples
-    H = computehomography(samples1,samples2)
-    # Compute the distances between tranformed points
-    d2 = computehomographydistance(H,pairs[:,1:2],pairs[:,3:4])
-    # Find the inliers
-    number, indices = findinliers(d2,thresh)
-    # If the number of inliers is greater the before save them
-    if(number>=number_old)
-      bestinliers = indices
-      bestpairs = [samples1 samples2]
-      bestH = H
-      number_old = number
+  i=1
+  while i<=n
+    try
+      # Pick random samples
+      samples1, samples2 = picksamples(pairs[:,1:2],pairs[:,3:4],4)
+      # Compute the Homography for the random samples
+      H = computehomography(samples1,samples2)
+      # Compute the distances between tranformed points
+      d2 = computehomographydistance(H,pairs[:,1:2],pairs[:,3:4])
+      # Find the inliers
+      number, indices = findinliers(d2,thresh)
+      # If the number of inliers is greater the before save them
+      if(number>=number_old)
+        bestinliers = indices
+        bestpairs = [samples1 samples2]
+        bestH = H
+        number_old = number
+      end
+      i = i + 1
+    catch e
+      println(e)
     end
   end
 
@@ -442,7 +450,7 @@ function problem2()
   niterations = computeransaciterations(p,k,z)
   #
   # # apply RANSAC
-  bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,1000)#niterations)
+  bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,niterations)#niterations)
   @printf(" # of bestinliers : %d", length(bestinliers))
   #
   # # show best matches
