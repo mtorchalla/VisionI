@@ -418,14 +418,14 @@ function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64
       # Check if the calculated new points are part of Image 2
       if xy_new[2]>=1 && xy_new[2]<=size(im2,1) && xy_new[1]>=1 && xy_new[1]<=size(im2,2)
         # Interpolate the searched new points from Image 2 pixels, 0.8 is for brightness adjustment(Visual)
-        stitched[y,x] = 0.8*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])
+        stitched[y,x] = 0.85*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])
       end
     end
   end
   # Add in Image 1 to the left edge of the stitched Image (use as much of Image 1 as possible to obtain less distortion)
-  stitched[1:size(im1,1),1:size(im1,2)] = im1[1:end,1:end];
+  stitched[1:size(im1,1),1:size(im1,2)-75] = im1[1:end,1:end-75];
   # Show the stiched panorama
-  imshow(stitched,"gray")
+  imshow(stitched,"gray",vmin=0,vmax=1)
   return nothing::Nothing
 end
 
@@ -438,7 +438,7 @@ function problem2()
   sigma = 1.4             # standard deviation for presmoothing derivatives
 
   # RANSAC Parameters
-  ransac_threshold = 50.0 # inlier threshold
+  ransac_threshold = 5000.0 # inlier threshold
   p = 0.5                 # probability that any given correspondence is valid
   k = 4                   # number of samples drawn per iteration
   z = 0.99                # total probability of success after all iterations
@@ -485,10 +485,12 @@ function problem2()
   #
   # # stitch images and show the result
   showstitch(im1,im2,bestH)
+  title("Best Four Points")
   #
   # # recompute homography with all inliers
   H = refithomography(pairs,bestinliers)
   showstitch(im1,im2,H)
+  title("Refitted Homography")
 
   return nothing::Nothing
 end
