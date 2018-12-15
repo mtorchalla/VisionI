@@ -21,7 +21,9 @@ include("Common.jl")
 #
 #---------------------------------------------------------
 function loadkeypoints(filename::String)
+  # Load keypoints from file
   p = load(filename)
+  # Split into keypoints from Image 1 and 2
   keypoints1 = p["keypoints1"]
   keypoints2 = p["keypoints2"]
 
@@ -152,7 +154,7 @@ end
 function picksamples(points1::Array{Int,2},points2::Array{Int,2},k::Int)
   sample1 = zeros(Int,k,2)
   sample2 = zeros(Int,k,2)
-  r_old = zeros(Int,1)
+  r_old = zeros(Int,0)
   for i=1:k
     # Pick random point out of all remaining points
     r = rand(1:size(points1,1))
@@ -165,9 +167,9 @@ function picksamples(points1::Array{Int,2},points2::Array{Int,2},k::Int)
 
     # Save the random value to not pick it agin
     r_old = vcat(r_old,r)
+
   end
-  # subplot(122)
-  # PyPlot.scatter(sample2[:,1],sample2[:,2])
+
   @assert size(sample1) == (k,2)
   @assert size(sample2) == (k,2)
   return sample1::Array{Int,2},sample2::Array{Int,2}
@@ -193,19 +195,20 @@ function condition(points::Array{Float64,2})
   tx = mean(points[:,1])
   # Calculate Mean in y direction
   ty = mean(points[:,2])
-
-  T = [ 1/s 0   -tx/s ;
+  # Condition Matrix
+  T = [ 1/s 0   -tx/s;
         0   1/s -ty/s;
         0   0   1     ]
-  #display(T)
-  points = Common.cart2hom(points')
 
+  #     Convert points so they can be multiplied
+  points = Common.cart2hom(points')
+  # Condition Points
   U = T*points
+  # Re-convert points
   points = (Common.hom2cart(points))'
-  # #display(points)
+  # Re-convert conditioned points
   U = (Common.hom2cart(U))'
   U = U[:,1:2]
-  # #display(U)
 
   @assert size(U) == size(points)
   @assert size(T) == (3,3)
@@ -225,19 +228,24 @@ end
 #
 #---------------------------------------------------------
 function computehomography(points1::Array{Int,2}, points2::Array{Int,2})
+  # Condition Both sets of points
   U1, T1 = condition(float(points1))
   U2, T2 = condition(float(points2))
+  # Create Empty Matrix A
   A = zeros(size(U1,1)*2, 9)
   debug = false
-
+  # Fill matrix A with the Linear Equation System of the Homography
   for i=1:size(U1,1)
     A[i*2-1,:] = [       0        0  0 U1[i,1] U1[i,2] 1 -U1[i,1]*U2[i,2] -U1[i,2]*U2[i,2] -U2[i,2]]
     A[i*2,:]   = [-U1[i,1] -U1[i,2] -1       0       0 0  U1[i,1]*U2[i,1]  U1[i,2]*U2[i,1]  U2[i,1]]
   end
-
+  # Apply SVD to A
   U, S, V = svd(A, full=true)
+  # Get conditiioned Homography from the last singular vector
   H_ = reshape(V[:,end], 3,3)'
+  # Un-condition the Homography
   H = inv(T2) * H_ * T1
+
   if debug
     for i=1:size(U1,1)
       a1 = H_*[U1[i,1]; U1[i,2];1]
@@ -274,22 +282,17 @@ end
 #
 #---------------------------------------------------------
 function computehomographydistance(H::Array{Float64,2},points1::Array{Int,2},points2::Array{Int,2})
-  # Apply homography to points1
-  inv(H)
+  # Apply homography to points1 and points2
+  inv(H)# This Inverese throws the Singular Matrix Exception
   points1H = Common.hom2cart(H*Common.cart2hom(points1'))'
   points2H = Common.hom2cart(H\Common.cart2hom(points2'))'
+  # Vector of the Squarred differences
   d2 = zeros(size(points1,1),1)
   # Compute Squarred difference between points in both directions
   for i=1:size(points1,1)
     d2[i] = norm(points1H[i,:]-points2[i,:])^2+norm(points1[i,:]-points2H[i,:])^2
   end
 
-
-  # #  Provided Code from Moodle
-  # d2 = Array{Float64,2}(undef, 1, length(d2_y))
-  # d2[1, :] = d2_y
-  #display(d2)
-  # d2 = vec(d2)
   @assert length(d2) == size(points1,1)
   return d2::Array{Float64,2}
 end
@@ -307,8 +310,10 @@ end
 #  indices    indices (in distance) of inliers
 #
 #---------------------------------------------------------
-function findinliers(distance::Array{Float64,2},thresh::Float64) #2}
+function findinliers(distance::Array{Float64,2},thresh::Float64)
+  # Find indices of inliers
   indices = findall(distance[:,1].<thresh)
+  # Number of inliers
   n=size(indices,1)
 
   return n::Int,indices::Array{Int,1}
@@ -341,7 +346,7 @@ function ransac(pairs::Array{Int,2},thresh::Float64,n::Int)
   # Iterate n times
   i=1
   while i<=n
-    try
+    try # In case there is an Exception we re-iterate the that iteration, so we get full number of iterations with valid values
       # Pick random samples
       samples1, samples2 = picksamples(pairs[:,1:2],pairs[:,3:4],4)
       # Compute the Homography for the random samples
@@ -382,6 +387,7 @@ end
 #
 #---------------------------------------------------------
 function refithomography(pairs::Array{Int64,2}, inliers::Array{Int64,1})
+  # Cumpute the full Homography from all inliers
   H = computehomography(pairs[inliers,1:2],pairs[inliers,3:4])
 
   @assert size(H) == (3,3)
@@ -400,43 +406,25 @@ end
 #---------------------------------------------------------
 function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64,2})
   figure()
+  # Empty shell for the stitched Image
   stitched = 2*ones(size(im1,1),700)
-
+  # Iterate over the stitched Image shell
   for y=1:size(stitched,1)
     for x=1:size(stitched,2)
+      # Compute the position of points from Image 1 in Image 2
       xy_new = H*[x;y;1]
+      # Convert to Cartesian Points
       xy_new = Common.hom2cart(xy_new)
+      # Check if the calculated new points are part of Image 2
       if xy_new[2]>=1 && xy_new[2]<=size(im2,1) && xy_new[1]>=1 && xy_new[1]<=size(im2,2)
-        stitched[y,x] = 0.8*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])#Birghtness adjustment
+        # Interpolate the searched new points from Image 2 pixels, 0.8 is for brightness adjustment(Visual)
+        stitched[y,x] = 0.8*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])
       end
     end
   end
+  # Add in Image 1 to the left edge of the stitched Image (use as much of Image 1 as possible to obtain less distortion)
   stitched[1:size(im1,1),1:size(im1,2)] = im1[1:end,1:end];
-  # for y=1:size(im2,1)
-  #   for x=1:size(im2,2)
-  #     xy_new = inv(H)*[x;y;1]
-  #
-  #     xy_new = Int.(round.(Common.hom2cart(xy_new)))
-  #     # display(xy_new)
-  #     if xy_new[1]<701 && xy_new[1]>0 && xy_new[2]<300 && xy_new[2]>0
-  #       if stitched[xy_new[2],xy_new[1]] != 2
-  #         stitched[xy_new[2],xy_new[1]] = 0.5*(im2[y,x] + stitched[xy_new[2],xy_new[1]])
-  #       else
-  #         stitched[xy_new[2],xy_new[1]] = im2[y,x]
-  #       end
-  #     end
-  #   end
-  # end
-  # stitched[findall(stitched.>=2)].= 0
-  # stitched = Images.bilinear_interpolation(stitched)
-  # for i=1:5
-  #   for u=1:299
-  #     for v=1:700
-  #       stitched[u,v] = Images.bilinear_interpolation(stitched,u,v)
-  #     end
-  #   end
-  # end
-  # display(stitched)
+  # Show the stiched panorama
   imshow(stitched,"gray")
   return nothing::Nothing
 end
