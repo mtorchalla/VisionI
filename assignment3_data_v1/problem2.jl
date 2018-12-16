@@ -446,7 +446,7 @@ function problem2()
   sigma = 1.4             # standard deviation for presmoothing derivatives
 
   # RANSAC Parameters
-  ransac_threshold = 150.0 # inlier threshold
+  ransac_threshold = 0.005 # inlier threshold
   p = 0.5                 # probability that any given correspondence is valid
   k = 4                   # number of samples drawn per iteration
   z = 0.99                # total probability of success after all iterations
@@ -493,10 +493,12 @@ function problem2()
 
   # stitch images and show the result
   showstitch(im1,im2,bestH)
+  title("Best Four Points")
 
   # recompute homography with all inliers
   H = refithomography(pairs,bestinliers)
   showstitch(im1,im2,H)
+  title("Refitted Homography")
 
   return nothing::Nothing
 end

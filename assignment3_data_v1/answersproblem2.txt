@@ -1,0 +1,18 @@
+t = 0.005 BI = 5  5  5  4  5    1/5 no visual result possible
+t = 0.05  BI = 5  6  5  6  5    2/5 more inlier Better
+t = 0.5   BI = 23 18 10 20 16   1/5 
+t = 5     BI = 42 58 56 57 44   2/5 separation visible
+t = 50.0  BI = 82 76 82 82 81   5/5 best repeatability
+t = 250   BI = 84 87 86 87 84   5/5 not visible difference to 50
+t = 500   BI = 88 88 86 87 87   2/5 similar performance to 0.5
+
+i) the number of best inliers
+  The number of inliers generally increases the accuracy of the result to a certain degree, because we get a more evenly distributed cloud of values to estimate the Homography. But when the threshold is chosen to large, we get false positives. Meaning we include points, which have a large distance from their corresponding point. This again means we are using a lot of points to estimate our Homography, but the estimation data is less accurate. The Number of inliers increases with the threshold.
+
+ii) the quality of the output
+  The output quality is depending on the number of correct inliers. It is important that each inlier has a very small distance to its corresponding point. Ideally the inliers should be distributed evenly throughout the Images. The output quality will be worse the further we depart from the mean of the inliers, because the image will be more distorted there. The quality peaks at around 50 for the threshold but is almost indistinguishable from the Results wit the threshold 100 and 250. Also the quality is strongly depended on brightness and contrast adjustments and placement of the seam. If you place the seam at a very monotone space of the image is will be less noticeable than in a strongly varying part of the Image. Blending the two images would greatly improve the quality of the output.
+
+iii) the consistency with multiple runs
+  Even though the number of inliers stays relatively constant with each run, we get a big discrepancy in quality with less inliers. For example the with a threshold of 0.005 we find about 5 inlier. But these 5 have to describe the whole transformation. The inliers need to be evenly distributed, otherwise small errors in distance of the points will be magnified in the estimation of the Homography. The result is more consistent each run the higher the threshold, but the consistency converges with increasing threshold.
+
+Using the above testing and reasoning I would choose a threshold of 50+-20 to the get the best results. But blending, placement and adjustments in brightness and contrast would increase the result dramatically.
