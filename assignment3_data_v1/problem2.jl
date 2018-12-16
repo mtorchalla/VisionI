@@ -423,20 +423,13 @@ function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64
       xy_new = Common.hom2cart(xy_new) #xy_new[1] = x_new, xy_new[2] = y_new
       # Check if the calculated new points are part of Image 2
       if xy_new[2]>=1 && xy_new[2]<=size(im2,1) && xy_new[1]>=1 && xy_new[1]<=size(im2,2)
-        # Interpolate the searched new points from Image 2 pixels, 0.8 is for brightness adjustment(Visual)
+        # Interpolate the searched new points from Image 2 pixels, 0.8 is for brightness adjustment(Visual) and may be changed
         stitched[y,x] = 0.8*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])
       end
     end
   end
-  # Add in Image 1 to the left edge of the stitched Image (use as much of Image 1 as possible to obtain less distortion)
+  # Add in Image 1 to the left edge (300px) of the stitched Image (use as much of Image 1 as possible to obtain less distortion)
   stitched[1:size(im1,1),1:300] = im1[1:end,1:300];
-  # figure()
-  # title("Stitched Image")
-  # imshow(stitched,"gray")
-  # stitched_connection = stitched[:,399:401]
-  # gauss = Common.gauss2d(1.2,[3 3]);
-  # stitched_connection = imfilter(stitched_connection, centered(gauss), "replicate")
-  # stitched[:,399:401] = stitched_connection
   # Show the stiched panorama
   figure()
   title("Stitched Image")
@@ -453,7 +446,7 @@ function problem2()
   sigma = 1.4             # standard deviation for presmoothing derivatives
 
   # RANSAC Parameters
-  ransac_threshold = 50.0 # inlier threshold
+  ransac_threshold = 150.0 # inlier threshold
   p = 0.5                 # probability that any given correspondence is valid
   k = 4                   # number of samples drawn per iteration
   z = 0.99                # total probability of success after all iterations
@@ -482,26 +475,26 @@ function problem2()
   # show matches
   showmatches(im1,im2,pairs)
   title("Putative Matching Pairs")
-  #
-  # # compute number of iterations for the RANSAC algorithm
+
+  # compute number of iterations for the RANSAC algorithm
   niterations = computeransaciterations(p,k,z)
-  #
-  # # apply RANSAC
+
+  # apply RANSAC
   bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,niterations)#niterations)
   @printf(" # of bestinliers : %d", length(bestinliers))
-  #
-  # # show best matches
+
+  # show best matches
   showmatches(im1,im2,bestpairs)
   title("Best 4 Matches")
-  #
-  # # show all inliers
+
+  # show all inliers
   showmatches(im1,im2,pairs[bestinliers,:])
   title("All Inliers")
-  #
-  # # stitch images and show the result
+
+  # stitch images and show the result
   showstitch(im1,im2,bestH)
-  #
-  # # recompute homography with all inliers
+
+  # recompute homography with all inliers
   H = refithomography(pairs,bestinliers)
   showstitch(im1,im2,H)
 
