@@ -432,7 +432,7 @@ function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64
   stitched[1:size(im1,1),1:300] = im1[1:end,1:300];
   # Show the stiched panorama
   figure()
-  title("Stitched Image")
+  # title("Stitched Image")
   imshow(stitched,"gray")
   return nothing::Nothing
 end
@@ -446,7 +446,7 @@ function problem2()
   sigma = 1.4             # standard deviation for presmoothing derivatives
 
   # RANSAC Parameters
-  ransac_threshold = 0.005 # inlier threshold
+  ransac_threshold = 70.0 # inlier threshold
   p = 0.5                 # probability that any given correspondence is valid
   k = 4                   # number of samples drawn per iteration
   z = 0.99                # total probability of success after all iterations
