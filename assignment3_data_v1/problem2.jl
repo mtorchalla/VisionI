@@ -46,7 +46,8 @@ end
 #---------------------------------------------------------
 function euclideansquaredist(features1::Array{Float64,2},features2::Array{Float64,2})
   m, n = size(features1,2), size(features2,2)
-  D = zeros(m,n)
+  D = zeros(m,n) # Create the Matrix with zeros
+  # Calculate row-wise the euclideansquaredistance
   for i=1:m
     D[i,:] = sum((features1[:,i] .- features2[:,:]).^2, dims=1)
   end
@@ -76,11 +77,16 @@ end
 #
 #---------------------------------------------------------
 function findmatches(p1::Array{Int,2},p2::Array{Int,2},D::Array{Float64,2})
-  pairs = zeros((min(size(p1,1),size(p2,1)),4))
+  pairs = zeros((min(size(p1,1),size(p2,1)),4)) # Create Pairs
+  # Calculate row-wise the the pairs with the minimum distance in D
   for i=1:min(size(p1,1),size(p2,1))
     pairs[i,:] = [ p1[argmin(D[:,i]),:]; p2[i,:] ]'
   end
-  pairs = convert(Array{Int,2}, pairs)
+  # Also valid:
+  # for i=1:min(size(p1,1),size(p2,1))
+  #   pairs[i,:] = [ p1[i,:]; p2[argmin(D[i,:]),:] ]'
+  # end
+  pairs = convert(Array{Int,2}, pairs) # found indices are float, convert to Int
 
   @assert size(pairs) == (min(size(p1,1),size(p2,1)),4)
   return pairs::Array{Int,2}
@@ -99,6 +105,7 @@ end
 #
 #---------------------------------------------------------
 function showmatches(im1::Array{Float64,2},im2::Array{Float64,2},pairs::Array{Int,2})
+  # Plot the matches in 2 Subplots, Interest-Points marked by an 'x' and a corresponding Number 'n'
   figure()
   subplot(121)
   imshow(im1, "gray")
@@ -158,7 +165,7 @@ function picksamples(points1::Array{Int,2},points2::Array{Int,2},k::Int)
   for i=1:k
     # Pick random point out of all remaining points
     r = rand(1:size(points1,1))
-    while(any(r == r_old)) # Make sure smples are not picked twice
+    while(any(r == r_old)) # Make sure samples are not picked twice
       r = rand(1:size(points1,1))
     end
     # Save the random point and the corresponding one from the other image
@@ -195,14 +202,14 @@ function condition(points::Array{Float64,2})
   tx = mean(points[:,1])
   # Calculate Mean in y direction
   ty = mean(points[:,2])
-  # Condition Matrix
+  # Condition Matrix T
   T = [ 1/s 0   -tx/s;
         0   1/s -ty/s;
         0   0   1     ]
 
-  #     Convert points so they can be multiplied
+  # Convert points using Common so they can be multiplied
   points = Common.cart2hom(points')
-  # Condition Points
+  # Condition Points U
   U = T*points
   # Re-convert points
   points = (Common.hom2cart(points))'
@@ -233,19 +240,19 @@ function computehomography(points1::Array{Int,2}, points2::Array{Int,2})
   U2, T2 = condition(float(points2))
   # Create Empty Matrix A
   A = zeros(size(U1,1)*2, 9)
-  debug = false
-  # Fill matrix A with the Linear Equation System of the Homography
+  # Stack Matrix A with the Linear Equation System of the Homography
   for i=1:size(U1,1)
     A[i*2-1,:] = [       0        0  0 U1[i,1] U1[i,2] 1 -U1[i,1]*U2[i,2] -U1[i,2]*U2[i,2] -U2[i,2]]
     A[i*2,:]   = [-U1[i,1] -U1[i,2] -1       0       0 0  U1[i,1]*U2[i,1]  U1[i,2]*U2[i,1]  U2[i,1]]
   end
-  # Apply SVD to A
+  # Apply SVD to A, using full SVD
   U, S, V = svd(A, full=true)
-  # Get conditiioned Homography from the last singular vector
+  # Get conditioned Homography from the last-right singular vector from V
   H_ = reshape(V[:,end], 3,3)'
   # Un-condition the Homography
   H = inv(T2) * H_ * T1
 
+  debug = false
   if debug
     for i=1:size(U1,1)
       a1 = H_*[U1[i,1]; U1[i,2];1]
@@ -283,12 +290,12 @@ end
 #---------------------------------------------------------
 function computehomographydistance(H::Array{Float64,2},points1::Array{Int,2},points2::Array{Int,2})
   # Apply homography to points1 and points2
-  inv(H)# This Inverese throws the Singular Matrix Exception
+  #inv(H) # This Inverese throws the Singular Matrix Exception
   points1H = Common.hom2cart(H*Common.cart2hom(points1'))'
   points2H = Common.hom2cart(H\Common.cart2hom(points2'))'
   # Vector of the Squarred differences
   d2 = zeros(size(points1,1),1)
-  # Compute Squarred difference between points in both directions
+  # Compute Squared difference between points in both directions
   for i=1:size(points1,1)
     d2[i] = norm(points1H[i,:]-points2[i,:])^2+norm(points1[i,:]-points2H[i,:])^2
   end
@@ -343,7 +350,7 @@ function ransac(pairs::Array{Int,2},thresh::Float64,n::Int)
   bestpairs = 0
   bestH = 0
 
-  # Iterate n times
+  # Iterate n times using a while-loop, so the increment i can be changed if a singularity occurs
   i=1
   while i<=n
     try # In case there is an Exception we re-iterate the that iteration, so we get full number of iterations with valid values
@@ -405,27 +412,28 @@ end
 #
 #---------------------------------------------------------
 function showstitch(im1::Array{Float64,2},im2::Array{Float64,2},H::Array{Float64,2})
-  figure()
-  # Empty shell for the stitched Image
-  stitched = 2*ones(size(im1,1),700)
+  # Empty shell for the stitched Image, as in given description
+  stitched = ones(size(im1,1),700)
   # Iterate over the stitched Image shell
   for y=1:size(stitched,1)
     for x=1:size(stitched,2)
       # Compute the position of points from Image 1 in Image 2
       xy_new = H*[x;y;1]
       # Convert to Cartesian Points
-      xy_new = Common.hom2cart(xy_new)
+      xy_new = Common.hom2cart(xy_new) #xy_new[1] = x_new, xy_new[2] = y_new
       # Check if the calculated new points are part of Image 2
       if xy_new[2]>=1 && xy_new[2]<=size(im2,1) && xy_new[1]>=1 && xy_new[1]<=size(im2,2)
-        # Interpolate the searched new points from Image 2 pixels, 0.8 is for brightness adjustment(Visual)
-        stitched[y,x] = 0.85*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])
+        # Interpolate the searched new points from Image 2 pixels, 0.8 is for brightness adjustment(Visual) and may be changed
+        stitched[y,x] = 0.8*Images.bilinear_interpolation(im2, xy_new[2], xy_new[1])
       end
     end
   end
-  # Add in Image 1 to the left edge of the stitched Image (use as much of Image 1 as possible to obtain less distortion)
-  stitched[1:size(im1,1),1:size(im1,2)-75] = im1[1:end,1:end-75];
+  # Add in Image 1 to the left edge (300px) of the stitched Image (use as much of Image 1 as possible to obtain less distortion)
+  stitched[1:size(im1,1),1:300] = im1[1:end,1:300];
   # Show the stiched panorama
-  imshow(stitched,"gray",vmin=0,vmax=1)
+  figure()
+  # title("Stitched Image")
+  imshow(stitched,"gray")
   return nothing::Nothing
 end
 
@@ -438,7 +446,7 @@ function problem2()
   sigma = 1.4             # standard deviation for presmoothing derivatives
 
   # RANSAC Parameters
-  ransac_threshold = 5000.0 # inlier threshold
+  ransac_threshold = 70.0 # inlier threshold
   p = 0.5                 # probability that any given correspondence is valid
   k = 4                   # number of samples drawn per iteration
   z = 0.99                # total probability of success after all iterations
@@ -467,27 +475,27 @@ function problem2()
   # show matches
   showmatches(im1,im2,pairs)
   title("Putative Matching Pairs")
-  #
-  # # compute number of iterations for the RANSAC algorithm
+
+  # compute number of iterations for the RANSAC algorithm
   niterations = computeransaciterations(p,k,z)
-  #
-  # # apply RANSAC
+
+  # apply RANSAC
   bestinliers,bestpairs,bestH = ransac(pairs,ransac_threshold,niterations)#niterations)
   @printf(" # of bestinliers : %d", length(bestinliers))
-  #
-  # # show best matches
+
+  # show best matches
   showmatches(im1,im2,bestpairs)
   title("Best 4 Matches")
-  #
-  # # show all inliers
+
+  # show all inliers
   showmatches(im1,im2,pairs[bestinliers,:])
   title("All Inliers")
-  #
-  # # stitch images and show the result
+
+  # stitch images and show the result
   showstitch(im1,im2,bestH)
   title("Best Four Points")
-  #
-  # # recompute homography with all inliers
+
+  # recompute homography with all inliers
   H = refithomography(pairs,bestinliers)
   showstitch(im1,im2,H)
   title("Refitted Homography")
