@@ -18,7 +18,27 @@ include("Common.jl")
 #
 #---------------------------------------------------------
 function condition(points::Array{Float64,2})
-  # just insert your assignment3 condition method here..
+  #points = points[1:2,:]'
+  # Calculate Maximum of the Points
+  s = 0.5*maximum(points)
+  # Calculate Mean in x direction
+  tx = mean(points[1,:])
+  # Calculate Mean in y direction
+  ty = mean(points[2,:])
+  # Condition Matrix T
+  T = [ 1/s 0   -tx/s;
+        0   1/s -ty/s;
+        0   0   1     ]
+
+  # Convert points using Common so they can be multiplied
+  #points = Common.cart2hom(points')
+  # Condition Points U
+  U = T*points
+  # Re-convert points
+  #points = (Common.hom2cart(points))'
+  # Re-convert conditioned points
+  #U = (Common.hom2cart(U))'
+  #U = U[:,1:2]
 
   @assert size(U) == size(points)
   @assert size(T) == (3,3)
@@ -39,6 +59,10 @@ end
 # Enforce that the given matrix has rank 2
 function enforcerank2(A::Array{Float64,2})
 
+  U,S,V = svd(A,full=true)
+  #S[end,end] = 0
+  Ahat = U*[S[1] 0 0;0 S[2] 0; 0 0 0]*V' # diagm(S) not working
+
   @assert size(Ahat) == (3,3)
   return Ahat::Array{Float64,2}
 end
@@ -58,6 +82,25 @@ end
 # Compute the fundamental matrix for given conditioned points
 function computefundamental(p1::Array{Float64,2},p2::Array{Float64,2})
 
+  A=zeros(size(p1,2),9)
+
+  for i=1:size(p1,2)
+
+    x1 = p1[1,i]
+    x2 = p2[1,i]
+    y1 = p1[2,i]
+    y2 = p2[2,i]
+
+    A[i,:]=[x2*x1 y2*x1 x1 x2*y1 y2*y1 y1 x2 y2 1]
+  end
+
+  U,S,V = svd(A,full=true)
+
+  F = [V[1:3,end]';V[4:6,end]';V[7:9,end]']
+
+  F = enforcerank2(F)
+
+
   @assert size(F) == (3,3)
   return F::Array{Float64,2}
 end
@@ -75,6 +118,14 @@ end
 #
 #---------------------------------------------------------
 function eightpoint(p1::Array{Float64,2},p2::Array{Float64,2})
+
+  x1,T1 = condition(p1)
+  x2,T2 = condition(p2)
+
+  F = computefundamental(x1,x2)
+  display(F)
+  F = T1'*F*T2
+  display(F)
 
   @assert size(F) == (3,3)
   return F::Array{Float64,2}
@@ -100,6 +151,27 @@ end
 #
 #---------------------------------------------------------
 function showepipolar(F::Array{Float64,2},points::Array{Float64,2},img::Array{Float64,3})
+  e = nullspace(F)
+  e = e./e[3]
+  x = Common.cart2hom(points')
+  display(e)
+  display(F')
+  l = F*x
+
+
+  display(l)
+
+  imshow(img,interpolation="none")
+  # scatter()
+  PyPlot.plot(e[1],e[2],"x")
+  # display(l)
+  e[2]=e[2]+30
+  e[1]=e[1]+30
+  for i=1:16
+    l[1:2,i] = l[1:2,i]/norm(l[1:2,i])
+    PyPlot.plot([e[1];e[1]+3000*l[2,i]],[e[2];e[2]-3000*l[1,i]],"red")
+    PyPlot.plot([e[1];e[1]-3000*l[2,i]],[e[2];e[2]+3000*l[1,i]],"red")
+  end
 
   return nothing::Nothing
 end
@@ -119,7 +191,11 @@ end
 #
 #---------------------------------------------------------
 function computeresidual(p1::Array{Float64,2},p2::Array{Float64,2},F::Array{Float64,2})
-  
+  residual = zeros(size(p1,2),1)
+  for i=1:size(p1,2)
+    residual[i] = p1[:,i]'*F*p2[:,i]
+  end
+
   return residual::Array{Float64,2}
 end
 
@@ -178,3 +254,5 @@ function problem1()
 
   return
 end
+PyPlot.close("all")
+problem1()
