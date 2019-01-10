@@ -1,0 +1,10 @@
+1.
+w = [5 5]:
+ disparity_SSD error = 9960.148688, 42.251928 seconds
+ disparity_NC error = 12473.511246, 51.417170 seconds 
+ 
+w = [11 11]:
+ disparity_SSD error = 9672.690650, 83.336093 seconds
+ disparity_NC error = 11790.780727, 122.275261 seconds
+  
+  
