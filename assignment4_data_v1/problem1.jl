@@ -91,7 +91,7 @@ function computefundamental(p1::Array{Float64,2},p2::Array{Float64,2})
     y1 = p1[2,i]
     y2 = p2[2,i]
 
-    A[i,:]=[x2*x1 y2*x1 x1 x2*y1 y2*y1 y1 x2 y2 1]
+    A[i,:]= kron(p1[:,i]',p2[:,i]')#[x2*x1 y2*x1 x1 x2*y1 y2*y1 y1 x2 y2 1]
   end
 
   U,S,V = svd(A,full=true)
@@ -123,9 +123,10 @@ function eightpoint(p1::Array{Float64,2},p2::Array{Float64,2})
   x2,T2 = condition(p2)
 
   F = computefundamental(x1,x2)
-  display(F)
+  # F = computefundamental(p1,p2)
+  #display(F)
   F = T1'*F*T2
-  display(F)
+  #display(F)
 
   @assert size(F) == (3,3)
   return F::Array{Float64,2}
@@ -154,25 +155,26 @@ function showepipolar(F::Array{Float64,2},points::Array{Float64,2},img::Array{Fl
   e = nullspace(F)
   e = e./e[3]
   x = Common.cart2hom(points')
-  display(e)
-  display(F')
-  l = F*x
+  #display(e)
+  #display(F')
+  l = (F')*x
 
 
-  display(l)
+  #display(l)
 
   imshow(img,interpolation="none")
-  # scatter()
-  PyPlot.plot(e[1],e[2],"x")
-  # display(l)
-  e[2]=e[2]+30
-  e[1]=e[1]+30
-  for i=1:16
-    l[1:2,i] = l[1:2,i]/norm(l[1:2,i])
-    PyPlot.plot([e[1];e[1]+3000*l[2,i]],[e[2];e[2]-3000*l[1,i]],"red")
-    PyPlot.plot([e[1];e[1]-3000*l[2,i]],[e[2];e[2]+3000*l[1,i]],"red")
-  end
 
+  PyPlot.plot(e[1],e[2],"x")
+
+  for i=1:size(points,1)
+    l[1:2,i] = l[1:2,i]/l[3,i]
+    l[1:2,i] = l[1:2,i]/norm(l[1:2,i])
+    PyPlot.plot([e[1];e[1]+3000*l[2,i]],[e[2];e[2]-3000*l[1,i]],"black",linewidth=0.7)
+    PyPlot.plot([e[1];e[1]-3000*l[2,i]],[e[2];e[2]+3000*l[1,i]],"black",linewidth=0.7)
+  end
+  PyPlot.xlim(0,size(img,2))
+  PyPlot.ylim(size(img,1),0)
+  PyPlot.show()
   return nothing::Nothing
 end
 
