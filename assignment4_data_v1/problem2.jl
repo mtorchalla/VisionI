@@ -158,10 +158,11 @@ function computeDisparityEff(gray_l, gray_r, max_disp, w_size)
   disparity = zeros(Int64, size(gray_l))
   wy = Int(floor(w_size[1]/2))
   wx = Int(floor(w_size[2]/2))
-  gray_r_ex = Inf*ones(size(gray_r,1),size(gray_r,2)+max_disp*2)
+  gray_r_ex = Float64.(Inf*ones(size(gray_r,1),size(gray_r,2)+max_disp*2))
   gray_r_ex[:,max_disp:end-max_disp-1] = gray_r
-  ssd = Inf*ones(size(gray_l,1),size(gray_l,2),max_disp*2)
-  sum_e = zeros(max_disp*2)
+  ssd = Float64.(Inf*ones(size(gray_l,1),size(gray_l,2),max_disp*2))
+  sum_e = Float64.(zeros(max_disp*2))
+  # sum_e_sort = zeros(max_disp*2)
   for i=1:max_disp*2
     ssd[:,:,i] = (gray_l.-gray_r_ex[:,i:end-(max_disp*2-i+1)]).^2
   end
@@ -175,6 +176,9 @@ function computeDisparityEff(gray_l, gray_r, max_disp, w_size)
         # calc_disp = computeSSD(gray_l[y-wy:y+wy, x-wx:x+wx], gray_r[y-wy:y+wy, i-wx:i+wx])
         sum_e[i] = sum(ssd[y-wy:y+wy,x-wx:x+wx,i])
       end
+      # sum_e_sort[1:2:end] = sum_e[max_disp:-1:1]
+        # sum_e_sort[2:2:end] = sum_e[max_disp+1:end]
+
         # vec(gray_l[y-wy:y+wy, x-wx:x+wx]) .- gray_r[y-wy:y+wy, i-wx:i+wx])
         disparity[y,x] = abs(argmin(sum_e)-max_disp) #d = |x-i|
 
@@ -207,20 +211,20 @@ function problem2()
   disparity_gt, valid_mask = loadGTdisaprity(gt_file_name)
 
   # estimate disparity
-  @time disparity_ssd = computeDisparity(gray_l, gray_r, max_disp, w_size, computeSSD)
+  # @time disparity_ssd = computeDisparity(gray_l, gray_r, max_disp, w_size, computeSSD)
   # @time disparity_nc = computeDisparity(gray_l, gray_r, max_disp, w_size, computeNC)
 
 
   # Calculate Error
-  error_disparity_ssd, error_map_ssd = calculateError(disparity_ssd, disparity_gt, valid_mask)
-  @printf(" disparity_SSD error = %f \n", error_disparity_ssd)
+  # error_disparity_ssd, error_map_ssd = calculateError(disparity_ssd, disparity_gt, valid_mask)
+  # @printf(" disparity_SSD error = %f \n", error_disparity_ssd)
   # error_disparity_nc, error_map_nc = calculateError(disparity_nc, disparity_gt, valid_mask)
   # @printf(" disparity_NC error = %f \n", error_disparity_nc)
 
-  figure()
-  subplot(2,1,1), imshow(disparity_ssd, interpolation="none"), axis("off"), title("disparity_ssd")
-  subplot(2,1,2), imshow(error_map_ssd, interpolation="none"), axis("off"), title("error_map_ssd")
-  gcf()
+  # figure()
+  # subplot(2,1,1), imshow(disparity_ssd, interpolation="none"), axis("off"), title("disparity_ssd")
+  # subplot(2,1,2), imshow(error_map_ssd, interpolation="none"), axis("off"), title("error_map_ssd")
+  # gcf()
 
   # figure()
   # subplot(2,1,1), imshow(disparity_nc, interpolation="none"), axis("off"), title("disparity_nc")
