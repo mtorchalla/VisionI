@@ -154,7 +154,36 @@ end
 #   An efficient implementation
 #---------------------------------------------------------
 function computeDisparityEff(gray_l, gray_r, max_disp, w_size)
+  max_disp = Int(max_disp/2)
+  disparity = zeros(Int64, size(gray_l))
+  wy = Int(floor(w_size[1]/2))
+  wx = Int(floor(w_size[2]/2))
+  gray_r_ex = Inf*ones(size(gray_r,1),size(gray_r,2)+max_disp*2)
+  gray_r_ex[:,max_disp:end-max_disp-1] = gray_r
+  ssd = Inf*ones(size(gray_l,1),size(gray_l,2),max_disp*2)
+  sum_e = zeros(max_disp*2)
+  for i=1:max_disp*2
+    ssd[:,:,i] = (gray_l.-gray_r_ex[:,i:end-(max_disp*2-i+1)]).^2
+  end
+  for y=1 + wy : size(gray_l,1) - wy
+    for x=1 + wx : size(gray_l,2) - wx
+      #Check if search range is in loop range of x: [1 + wx : size(gray_l,2) - wx]
+      ix_l = x-max_disp < 1+wx ? 1+wx : x-max_disp
+      ix_r = x+max_disp > size(gray_l,2) - wx ? size(gray_l,2) - wx : x+max_disp
 
+      for i=1:max_disp*2#ix_l:ix_r # i := x-d
+        # calc_disp = computeSSD(gray_l[y-wy:y+wy, x-wx:x+wx], gray_r[y-wy:y+wy, i-wx:i+wx])
+        sum_e[i] = sum(ssd[y-wy:y+wy,x-wx:x+wx,i])
+      end
+        # vec(gray_l[y-wy:y+wy, x-wx:x+wx]) .- gray_r[y-wy:y+wy, i-wx:i+wx])
+        disparity[y,x] = abs(argmin(sum_e)-max_disp) #d = |x-i|
+
+      # end
+    end
+  end
+  display(disparity)
+
+  @assert size(disparity) == size(gray_l)
 
   @assert size(disparity) == size(gray_l)
   return disparity::Array{Int64,2}
@@ -179,24 +208,24 @@ function problem2()
 
   # estimate disparity
   @time disparity_ssd = computeDisparity(gray_l, gray_r, max_disp, w_size, computeSSD)
-  @time disparity_nc = computeDisparity(gray_l, gray_r, max_disp, w_size, computeNC)
+  # @time disparity_nc = computeDisparity(gray_l, gray_r, max_disp, w_size, computeNC)
 
 
   # Calculate Error
   error_disparity_ssd, error_map_ssd = calculateError(disparity_ssd, disparity_gt, valid_mask)
   @printf(" disparity_SSD error = %f \n", error_disparity_ssd)
-  error_disparity_nc, error_map_nc = calculateError(disparity_nc, disparity_gt, valid_mask)
-  @printf(" disparity_NC error = %f \n", error_disparity_nc)
+  # error_disparity_nc, error_map_nc = calculateError(disparity_nc, disparity_gt, valid_mask)
+  # @printf(" disparity_NC error = %f \n", error_disparity_nc)
 
   figure()
   subplot(2,1,1), imshow(disparity_ssd, interpolation="none"), axis("off"), title("disparity_ssd")
   subplot(2,1,2), imshow(error_map_ssd, interpolation="none"), axis("off"), title("error_map_ssd")
   gcf()
 
-  figure()
-  subplot(2,1,1), imshow(disparity_nc, interpolation="none"), axis("off"), title("disparity_nc")
-  subplot(2,1,2), imshow(error_map_nc, interpolation="none"), axis("off"), title("error_map_nc")
-  gcf()
+  # figure()
+  # subplot(2,1,1), imshow(disparity_nc, interpolation="none"), axis("off"), title("disparity_nc")
+  # subplot(2,1,2), imshow(error_map_nc, interpolation="none"), axis("off"), title("error_map_nc")
+  # gcf()
 
   figure()
   imshow(disparity_gt)
@@ -204,14 +233,14 @@ function problem2()
   title("disparity_gt")
   gcf()
 
-  # @time disparity_ssd_eff = computeDisparityEff(gray_l, gray_r, max_disp, w_size)
-  # error_disparity_ssd_eff, error_map_ssd_eff = calculateError(disparity_ssd_eff, disparity_gt, valid_mask)
-  # @printf(" disparity_SSD_eff error = %f \n", error_disparity_ssd_eff)
-  #
-  # figure()
-  # subplot(2,1,1), imshow(disparity_ssd_eff, interpolation="none"), axis("off"), title("disparity_ssd_eff")
-  # subplot(2,1,2), imshow(error_map_ssd_eff, interpolation="none"), axis("off"), title("error_map_ssd_eff")
-  # gcf()
+  @time disparity_ssd_eff = computeDisparityEff(gray_l, gray_r, max_disp, w_size)
+  error_disparity_ssd_eff, error_map_ssd_eff = calculateError(disparity_ssd_eff, disparity_gt, valid_mask)
+  @printf(" disparity_SSD_eff error = %f \n", error_disparity_ssd_eff)
+
+  figure()
+  subplot(2,1,1), imshow(disparity_ssd_eff, interpolation="none"), axis("off"), title("disparity_ssd_eff")
+  subplot(2,1,2), imshow(error_map_ssd_eff, interpolation="none"), axis("off"), title("error_map_ssd_eff")
+  gcf()
 
   return nothing::Nothing
 end
