@@ -1,4 +1,4 @@
-1.
+1.(All Values measured with max_disp = max_disp/2 not clearly stated in the assignment sheet, max_disp = max_disp result take longer but have less error)
 w = [5 5]:
  disparity_SSD error = 9960.148688, 42 seconds
  disparity_NC error = 12473.511246, 51 seconds
@@ -12,12 +12,12 @@ w = [13 13]:
  disparity_SSD error = 9640.883833, 108 seconds
  disparity_NC error = 11315.242348, 176 seconds
  disparity_SSD_eff error = 9762.095403, 40 seconds
- 
+
 w = [15 15]:
  disparity_SSD error = 9657.241444, 117 seconds
  disparity_NC error = 11701.194243, 201 seconds
  disparity_SSD_eff error = 9773.636434, 48 seconds
- 
+
 w = [17 17]:
  disparity_SSD error = 9688.605552, 156 seconds
  disparity_NC error = 11344.161573, 310 seconds
@@ -27,7 +27,7 @@ w = [19 19]:
  disparity_SSD error = 9717.178379, 188 seconds
  disparity_NC error = 11570.593809, 418 seconds
  disparity_SSD_eff error = 9834.466077, 88 seconds
- 
+
 w = [21 21]:
  disparity_SSD error = 9749.817672, 193 seconds
  disparity_NC error = 11463.453548, 478 seconds
@@ -36,15 +36,15 @@ w = [21 21]:
 w = [31 31]:
  disparity_SSD error = 10039.44966, 327.524168 seconds
  disparity_NC error = 11194.221465, 863.753096 seconds
- 
+
 w = [41 41]:
  disparity_NC error = 11239.198813, 1446 seconds
- 
+
 Window size for the lowest average end-point error:
 	For SSD: w = [13 x 13]
 	For NC : w = [31 x 31]
- 
+
 2.
 The bigger the window size w the smaller the disparity error gets to a certain degree. If the window is to small, the chance of getting a false minimum in SSD or maximum in NC is higher. With a larger window size however, the given pixels are less representative and we also get a false positive result. Especially on textureless surfaces a larger window size leads to an bigger disparity error. Also when using a big window size like 27 x 27 the disparity gets blurred and more grained compared to a medium size.
-The calculation time increases roughly linear with the number of pixels in w, respectively the area of the window and also linear with the maximum disparity. 
-Besides the window size changing the maximum disparity changes also the error. If the maximal disparity is choosen to large, the disparity of objects far away could not be cleary recognised. Especially when there are repeating patterns in the picture a large max. disparity leads to bad results. On the other hand, with a high max. disparity the error of nearby objects is smaller. 
+The calculation time increases roughly linear with the number of pixels in w, respectively the area of the window and also linear with the maximum disparity.
+Besides the window size changing the maximum disparity changes also the error. If the maximal disparity is choosen to large, the disparity of objects far away could not be cleary recognised. Especially when there are repeating patterns in the picture a large max. disparity leads to bad results. On the other hand, with a high max. disparity the error of nearby objects is smaller.
