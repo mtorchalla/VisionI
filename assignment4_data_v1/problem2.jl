@@ -144,7 +144,7 @@ function computeDisparity(gray_l, gray_r, max_disp, w_size, cost_ftn::Function)
       end
     end
   end
-  display(disparity)
+  # display(disparity)
 
   @assert size(disparity) == size(gray_l)
   return disparity::Array{Int64,2}
@@ -154,38 +154,40 @@ end
 #   An efficient implementation
 #---------------------------------------------------------
 function computeDisparityEff(gray_l, gray_r, max_disp, w_size)
+  # Maximum disparity we would like to check for
   max_disp = Int(max_disp/2)
   disparity = zeros(Int64, size(gray_l))
+  # Boundary sizes
   wy = Int(floor(w_size[1]/2))
   wx = Int(floor(w_size[2]/2))
+  # Extended right image to be able to perform a matrix convolution type action
   gray_r_ex = Float64.(Inf*ones(size(gray_r,1),size(gray_r,2)+max_disp*2))
   gray_r_ex[:,max_disp:end-max_disp-1] = gray_r
-  ssd = Float64.(Inf*ones(size(gray_l,1),size(gray_l,2),max_disp*2))
+  # Squared differences for each pixel and each disparity
+  sd = Float64.(Inf*ones(size(gray_l,1),size(gray_l,2),max_disp*2))
+  # Sum of the squared differnences in the window size for each disparity
   sum_e = Float64.(zeros(max_disp*2))
-  # sum_e_sort = zeros(max_disp*2)
+  # Calculate the Squared differences
   for i=1:max_disp*2
-    ssd[:,:,i] = (gray_l.-gray_r_ex[:,i:end-(max_disp*2-i+1)]).^2
+    sd[:,:,i] = (gray_l.-gray_r_ex[:,i:end-(max_disp*2-i+1)]).^2
   end
+  # Evaluate each pixel
   for y=1 + wy : size(gray_l,1) - wy
     for x=1 + wx : size(gray_l,2) - wx
       #Check if search range is in loop range of x: [1 + wx : size(gray_l,2) - wx]
       ix_l = x-max_disp < 1+wx ? 1+wx : x-max_disp
       ix_r = x+max_disp > size(gray_l,2) - wx ? size(gray_l,2) - wx : x+max_disp
-
-      for i=1:max_disp*2#ix_l:ix_r # i := x-d
-        # calc_disp = computeSSD(gray_l[y-wy:y+wy, x-wx:x+wx], gray_r[y-wy:y+wy, i-wx:i+wx])
-        sum_e[i] = sum(ssd[y-wy:y+wy,x-wx:x+wx,i])
+      # Sum up the squared differnences in the window size for the range of the disparity
+      for i=1:max_disp*2
+        sum_e[i] = sum(sd[y-wy:y+wy,x-wx:x+wx,i])
       end
-      # sum_e_sort[1:2:end] = sum_e[max_disp:-1:1]
+        # sum_e_sort[1:2:end] = sum_e[max_disp:-1:1]
         # sum_e_sort[2:2:end] = sum_e[max_disp+1:end]
-
-        # vec(gray_l[y-wy:y+wy, x-wx:x+wx]) .- gray_r[y-wy:y+wy, i-wx:i+wx])
+        # Determine the disparity by cheking for the entry with the least sum of squared differnences
         disparity[y,x] = abs(argmin(sum_e)-max_disp) #d = |x-i|
-
-      # end
     end
   end
-  display(disparity)
+  # display(disparity)
 
   @assert size(disparity) == size(gray_l)
 
@@ -211,25 +213,25 @@ function problem2()
   disparity_gt, valid_mask = loadGTdisaprity(gt_file_name)
 
   # estimate disparity
-  # @time disparity_ssd = computeDisparity(gray_l, gray_r, max_disp, w_size, computeSSD)
-  # @time disparity_nc = computeDisparity(gray_l, gray_r, max_disp, w_size, computeNC)
+  @time disparity_ssd = computeDisparity(gray_l, gray_r, max_disp, w_size, computeSSD)
+  @time disparity_nc = computeDisparity(gray_l, gray_r, max_disp, w_size, computeNC)
 
 
   # Calculate Error
-  # error_disparity_ssd, error_map_ssd = calculateError(disparity_ssd, disparity_gt, valid_mask)
-  # @printf(" disparity_SSD error = %f \n", error_disparity_ssd)
-  # error_disparity_nc, error_map_nc = calculateError(disparity_nc, disparity_gt, valid_mask)
-  # @printf(" disparity_NC error = %f \n", error_disparity_nc)
+  error_disparity_ssd, error_map_ssd = calculateError(disparity_ssd, disparity_gt, valid_mask)
+  @printf(" disparity_SSD error = %f \n", error_disparity_ssd)
+  error_disparity_nc, error_map_nc = calculateError(disparity_nc, disparity_gt, valid_mask)
+  @printf(" disparity_NC error = %f \n", error_disparity_nc)
 
-  # figure()
-  # subplot(2,1,1), imshow(disparity_ssd, interpolation="none"), axis("off"), title("disparity_ssd")
-  # subplot(2,1,2), imshow(error_map_ssd, interpolation="none"), axis("off"), title("error_map_ssd")
-  # gcf()
+  figure()
+  subplot(2,1,1), imshow(disparity_ssd, interpolation="none"), axis("off"), title("disparity_ssd")
+  subplot(2,1,2), imshow(error_map_ssd, interpolation="none"), axis("off"), title("error_map_ssd")
+  gcf()
 
-  # figure()
-  # subplot(2,1,1), imshow(disparity_nc, interpolation="none"), axis("off"), title("disparity_nc")
-  # subplot(2,1,2), imshow(error_map_nc, interpolation="none"), axis("off"), title("error_map_nc")
-  # gcf()
+  figure()
+  subplot(2,1,1), imshow(disparity_nc, interpolation="none"), axis("off"), title("disparity_nc")
+  subplot(2,1,2), imshow(error_map_nc, interpolation="none"), axis("off"), title("error_map_nc")
+  gcf()
 
   figure()
   imshow(disparity_gt)
