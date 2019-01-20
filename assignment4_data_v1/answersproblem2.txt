@@ -1,125 +1,50 @@
 1.
 w = [5 5]:
- disparity_SSD error = 9960.148688, 42.251928 seconds
- disparity_NC error = 12473.511246, 51.417170 seconds
+ disparity_SSD error = 9960.148688, 42 seconds
+ disparity_NC error = 12473.511246, 51 seconds
 
 w = [11 11]:
- disparity_SSD error = 9672.690650, 83.336093 seconds
+ disparity_SSD error = 9672.690650, 83 seconds
  disparity_NC error = 11790.780727, 122.275261 seconds
+ disparity_SSD_eff error = 9794.048172, 34 seconds
 
+w = [13 13]:
+ disparity_SSD error = 9640.883833, 108 seconds
+ disparity_NC error = 11315.242348, 176 seconds
+ disparity_SSD_eff error = 9762.095403, 40 seconds
+ 
+w = [15 15]:
+ disparity_SSD error = 9657.241444, 117 seconds
+ disparity_NC error = 11701.194243, 201 seconds
+ disparity_SSD_eff error = 9773.636434, 48 seconds
+ 
 w = [17 17]:
- disparity_SSD error = 9688.605552, 156.000971 seconds
- disparity_NC error = 11344.161573, 310.121938 seconds
+ disparity_SSD error = 9688.605552, 156 seconds
+ disparity_NC error = 11344.161573, 310 seconds
+ disparity_SSD_eff error = 9804.966447, 76 seconds
 
+w = [19 19]:
+ disparity_SSD error = 9717.178379, 188 seconds
+ disparity_NC error = 11570.593809, 418 seconds
+ disparity_SSD_eff error = 9834.466077, 88 seconds
+ 
 w = [21 21]:
- disparity_SSD error = 9749.817672, 193.890165 seconds
- disparity_NC error = 11463.453548, 478.640873 seconds
+ disparity_SSD error = 9749.817672, 193 seconds
+ disparity_NC error = 11463.453548, 478 seconds
+ disparity_SSD_eff error = 9864.218909, 99 seconds
 
 w = [31 31]:
  disparity_SSD error = 10039.44966, 327.524168 seconds
  disparity_NC error = 11194.221465, 863.753096 seconds
-
-SSD MIN bei 13!!!!!!!!!!!!Wieder Löschen!!!!!!!!!!!!!!!!
-
+ 
+w = [41 41]:
+ disparity_NC error = 11239.198813, 1446 seconds
+ 
+Window size for the lowest average end-point error:
+	For SSD: w = [13 x 13]
+	For NC : w = [31 x 31]
+ 
 2.
 The bigger the window size w the smaller the disparity error gets to a certain degree. If the window is to small, the chance of getting a false minimum in SSD or maximum in NC is higher. With a larger window size however, the given pixels are less representative and we also get a false positive result. Especially on textureless surfaces a larger window size leads to an bigger disparity error. Also when using a big window size like 27 x 27 the disparity gets blurred and more grained compared to a medium size.
-
-
----------------------------------------------------------------------------------------
-11
- 43.114713 seconds (177.95 M allocations: 136.562 GiB, 10.37% gc time)
- 63.295515 seconds (355.90 M allocations: 360.625 GiB, 16.15% gc time)
- disparity_SSD error = 9672.690650
- disparity_NC error = 11790.780727
- 17.517680 seconds (44.97 M allocations: 47.315 GiB, 10.00% gc time)
- disparity_SSD_eff error = 9794.048172
----------------------------------------------------------------------------------------
-12
- 99.658010 seconds (176.68 M allocations: 184.953 GiB, 21.31% gc time)
-236.794818 seconds (353.36 M allocations: 489.691 GiB, 25.98% gc time)
- disparity_SSD error = 9640.883833
- disparity_NC error = 11315.242348
- 20.727917 seconds (44.65 M allocations: 63.625 GiB, 10.30% gc time)
- disparity_SSD_eff error = 9762.095403
----------------------------------------------------------------------------------------
-13
- 54.228048 seconds (176.68 M allocations: 184.953 GiB, 10.97% gc time)
- 88.759617 seconds (353.36 M allocations: 489.691 GiB, 16.40% gc time)
- disparity_SSD error = 9640.883833
- disparity_NC error = 11315.242348
- 20.757973 seconds (44.65 M allocations: 63.625 GiB, 10.30% gc time)
- disparity_SSD_eff error = 9762.095403
----------------------------------------------------------------------------------------
-14
-103.937472 seconds (175.41 M allocations: 250.282 GiB, 19.86% gc time)
-208.203853 seconds (350.83 M allocations: 663.928 GiB, 24.56% gc time)
- disparity_SSD error = 9657.241444
- disparity_NC error = 11701.194243
- 24.421983 seconds (44.33 M allocations: 85.644 GiB, 10.98% gc time)
- disparity_SSD_eff error = 9773.636434
----------------------------------------------------------------------------------------
-15
- 58.808155 seconds (175.41 M allocations: 250.282 GiB, 11.94% gc time)
-100.541565 seconds (350.83 M allocations: 663.928 GiB, 16.16% gc time)
- disparity_SSD error = 9657.241444
- disparity_NC error = 11701.194243
- 24.022238 seconds (44.33 M allocations: 85.644 GiB, 11.01% gc time)
- disparity_SSD_eff error = 9773.636434
----------------------------------------------------------------------------------------
-16
-124.408880 seconds (174.15 M allocations: 304.924 GiB, 24.30% gc time)
-181.725366 seconds (348.30 M allocations: 809.666 GiB, 29.87% gc time)
- disparity_SSD error = 9688.605552
- disparity_NC error = 11344.161573
- 37.118308 seconds (44.01 M allocations: 104.063 GiB, 20.43% gc time)
- disparity_SSD_eff error = 9804.966447
----------------------------------------------------------------------------------------
-17
- 89.919327 seconds (174.15 M allocations: 304.924 GiB, 23.52% gc time)
-187.806854 seconds (348.30 M allocations: 809.666 GiB, 29.31% gc time)
- disparity_SSD error = 9688.605552
- disparity_NC error = 11344.161573
- 38.402392 seconds (44.01 M allocations: 104.063 GiB, 20.27% gc time)
- disparity_SSD_eff error = 9804.966447
----------------------------------------------------------------------------------------
-18
-110.560273 seconds (172.89 M allocations: 372.281 GiB, 23.08% gc time)
-216.938927 seconds (345.79 M allocations: 989.309 GiB, 27.44% gc time)
- disparity_SSD error = 9717.178379
- disparity_NC error = 11570.593809
- 44.649386 seconds (43.70 M allocations: 126.767 GiB, 19.46% gc time)
- disparity_SSD_eff error = 9834.466077
----------------------------------------------------------------------------------------
-19
-100.423056 seconds (172.89 M allocations: 372.281 GiB, 22.43% gc time)
-209.598626 seconds (345.79 M allocations: 989.309 GiB, 27.01% gc time)
- disparity_SSD error = 9717.178379
- disparity_NC error = 11570.593809
- 44.072643 seconds (43.70 M allocations: 126.767 GiB, 19.64% gc time)
- disparity_SSD_eff error = 9834.466077
----------------------------------------------------------------------------------------
-20
-117.598186 seconds (171.64 M allocations: 446.306 GiB, 21.86% gc time)
-236.485971 seconds (343.28 M allocations: 1.159 TiB, 25.23% gc time)
- disparity_SSD error = 9749.817672
- disparity_NC error = 11463.453548
- 47.155016 seconds (43.38 M allocations: 151.721 GiB, 19.03% gc time)
- disparity_SSD_eff error = 9864.218909
----------------------------------------------------------------------------------------
-21
-119.888185 seconds (171.64 M allocations: 446.306 GiB, 21.80% gc time)
-254.407998 seconds (343.28 M allocations: 1.159 TiB, 26.33% gc time)
- disparity_SSD error = 9749.817672
- disparity_NC error = 11463.453548
- 49.573162 seconds (43.38 M allocations: 151.721 GiB, 18.90% gc time)
- disparity_SSD_eff error = 9864.218909
-
-
- 31
- 420.993277 seconds (330.82 M allocations: 2.369 TiB, 22.91% gc time)
-  disparity_NC error = 11194.221465
- ---------------------------------------------------------------------------------------
- 41
- 722.600178 seconds (318.52 M allocations: 3.949 TiB, 21.17% gc time)
-  disparity_NC error = 11239.198813
- ---------------------------------------------------------------------------------------
+The calculation time increases roughly linear with the number of pixels in w, respectively the area of the window and also linear with the maximum disparity. 
+Besides the window size changing the maximum disparity changes also the error. If the maximal disparity is choosen to large, the disparity of objects far away could not be cleary recognised. Especially when there are repeating patterns in the picture a large max. disparity leads to bad results. On the other hand, with a high max. disparity the error of nearby objects is smaller. 
