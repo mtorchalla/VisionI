@@ -113,3 +113,13 @@ The bigger the window size w the smaller the disparity error gets to a certain d
  disparity_NC error = 11463.453548
  49.573162 seconds (43.38 M allocations: 151.721 GiB, 18.90% gc time)
  disparity_SSD_eff error = 9864.218909
+
+
+ 31
+ 420.993277 seconds (330.82 M allocations: 2.369 TiB, 22.91% gc time)
+  disparity_NC error = 11194.221465
+ ---------------------------------------------------------------------------------------
+ 41
+ 722.600178 seconds (318.52 M allocations: 3.949 TiB, 21.17% gc time)
+  disparity_NC error = 11239.198813
+ ---------------------------------------------------------------------------------------
