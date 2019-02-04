@@ -11,7 +11,10 @@ include("Common.jl")
 # Load features and labels from file.
 #---------------------------------------------------------
 function loaddata(path::String)
-
+  data = load(path)
+  # display(data)
+  features = data["features"]
+  labels = data["labels"]
   @assert length(labels) == size(features,1)
   return features::Array{Float64,2}, labels::Array{Float64,1}
 end
@@ -21,6 +24,14 @@ end
 # different colors according to the labels.
 #---------------------------------------------------------
 function showbefore(features::Array{Float64,2},labels::Array{Float64,1})
+
+  green = features[findall(labels.<1.0),:]
+  blue = features[findall(labels.>=1.0),:]
+
+  PyPlot.figure()
+  PyPlot.scatter(green[:,1],green[:,2],c="green",label="0")
+  PyPlot.scatter(blue[:,1],blue[:,2],c="blue",label="1")
+  PyPlot.legend()
 
   return nothing::Nothing
 end
@@ -134,44 +145,46 @@ function problem2()
   showbefore(features,labels)
   title("Data for Separable Case")
 
-  # train MLP
-  Ws,bs = train(features,labels, [2,4,1])
-
-  # show optimum and plot decision boundary
-  showafter(features,labels,Ws,bs)
-  title("Learned Decision Boundary for Separable Case")
-
-
-  ## LINEAR NON-SEPARABLE DATA
-  # load data
-  features2,labels2 = loaddata("nonseparable.jld2")
-
-  # show data points
-  showbefore(features2,labels2)
-  title("Data for Non-Separable Case")
-
-  # train MLP
-  Ws,bs = train(features2,labels2, [2,4,1])
-
-  # show optimum and plot decision boundary
-  showafter(features2,labels2,Ws, bs)
-  title("Learned Decision Boundary for Non-Separable Case")
-
-  # PLANE-BIKE-CLASSIFICATION FROM PROBLEM 2
-  # load data
-  trainfeatures,trainlabels = loaddata("imgstrain.jld2")
-  testfeatures,testlabels = loaddata("imgstest.jld2")
-
-  # train MLP and predict classes
-  Ws,bs = train(trainfeatures,trainlabels, [50,40,30,1])
-  _,trainpredictions = predict(trainfeatures, Ws, bs)
-  _,testpredictions = predict(testfeatures, Ws, bs)
-
-  # show error
-  trainerror = sum(trainpredictions.!=trainlabels)/length(trainlabels)
-  testerror = sum(testpredictions.!=testlabels)/length(testlabels)
-  println("Training Error Rate: $(round(100*trainerror,digits=2))%")
-  println("Testing Error Rate: $(round(100*testerror,digits=2))%")
+  # # train MLP
+  # Ws,bs = train(features,labels, [2,4,1])
+  #
+  # # show optimum and plot decision boundary
+  # showafter(features,labels,Ws,bs)
+  # title("Learned Decision Boundary for Separable Case")
+  #
+  #
+  # ## LINEAR NON-SEPARABLE DATA
+  # # load data
+  # features2,labels2 = loaddata("nonseparable.jld2")
+  #
+  # # show data points
+  # showbefore(features2,labels2)
+  # title("Data for Non-Separable Case")
+  #
+  # # train MLP
+  # Ws,bs = train(features2,labels2, [2,4,1])
+  #
+  # # show optimum and plot decision boundary
+  # showafter(features2,labels2,Ws, bs)
+  # title("Learned Decision Boundary for Non-Separable Case")
+  #
+  # # PLANE-BIKE-CLASSIFICATION FROM PROBLEM 2
+  # # load data
+  # trainfeatures,trainlabels = loaddata("imgstrain.jld2")
+  # testfeatures,testlabels = loaddata("imgstest.jld2")
+  #
+  # # train MLP and predict classes
+  # Ws,bs = train(trainfeatures,trainlabels, [50,40,30,1])
+  # _,trainpredictions = predict(trainfeatures, Ws, bs)
+  # _,testpredictions = predict(testfeatures, Ws, bs)
+  #
+  # # show error
+  # trainerror = sum(trainpredictions.!=trainlabels)/length(trainlabels)
+  # testerror = sum(testpredictions.!=testlabels)/length(testlabels)
+  # println("Training Error Rate: $(round(100*trainerror,digits=2))%")
+  # println("Testing Error Rate: $(round(100*testerror,digits=2))%")
 
   return
 end
+PyPlot.close("all")
+problem2()
