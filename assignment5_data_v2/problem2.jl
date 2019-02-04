@@ -51,7 +51,7 @@ end
 # Implements the sigmoid function.
 #---------------------------------------------------------
 function sigmoid(z)
-
+  s = (1+exp(-z))^-1
   return s
 end
 
@@ -60,7 +60,7 @@ end
 # Implements the derivative of the sigmoid function.
 #---------------------------------------------------------
 function dsigmoid_dz(z)
-
+  ds = -exp(-z)*(1+exp(-z))^-2
   return ds
 end
 
@@ -108,7 +108,11 @@ end
 # A helper function which concatenates weights and biases into a variable theta
 #---------------------------------------------------------
 function weightsToTheta(Ws::Vector{Any}, bs::Vector{Any})
-
+  theta = Float64.(vcat(Ws,bs))
+  # theta = reshape(hcat(Ws[1],bs[1])',(length(Ws[1])+length(bs[1]),1))
+  # for i=2:size(Ws,1)
+  #   theta = vcat(theta,reshape(hcat(Ws[i],bs[i])' , (length(Ws[i])+length(bs[i]) , 1)))
+  # end
   return theta::Vector{Float64}
 end
 
@@ -117,6 +121,14 @@ end
 # A helper function which decomposes and reshapes weights and biases from the variable theta
 #---------------------------------------------------------
 function thetaToWeights(theta::Vector{Float64}, netdefinition::Array{Int,1})
+  nWs=0
+  for i=1:size(netdefinition,1)-1
+    nWs=nWs+netdefinition[i]*netdefinition[i+1]
+  end
+  Ws = Any[]
+  bs = Any[]
+  Ws = vcat(Ws,theta[1:nWs])
+  bs = vcat(bs,theta[nWs+1:end])
 
   return Ws::Vector{Any}, bs::Vector{Any}
 end
@@ -126,7 +138,19 @@ end
 # Initialize weights and biases from Gaussian distributions
 #---------------------------------------------------------
 function initWeights(netdefinition::Array{Int,1}, sigmaW::Float64, sigmaB::Float64)
+  nWs=0   #################### Random Muss mit variabler gauss verteilung#############################
+  ####################################################################################################
+  for i=1:size(netdefinition,1)-1
+    nWs=nWs+netdefinition[i]*netdefinition[i+1]
+  end
+  Ws = Any[]
+  bs = Any[]
+  Ws = vcat(Ws,randn(nWs))
+  bs = vcat(bs,randn(sum(netdefinition[2:end])))
 
+  # ## Ws indizes wie bei Fuzzy also Ws[schicht r][neuron j von schicht r, von neuron l von schicht r-1]
+  # Ws = [ randn(netdefinition[i+1],netdefinition[i]) for i=1:size(netdefinition,1)-1]
+  # bs = [ randn(netdefinition[i+1]) for i=1:size(netdefinition,1)-1]
   return Ws::Vector{Any}, bs::Vector{Any}
 end
 
@@ -188,3 +212,11 @@ function problem2()
 end
 PyPlot.close("all")
 problem2()
+Ws,bs = initWeights([2,4,1],0.0,0.0)
+display(Ws)
+display(bs)
+theta = weightsToTheta(Ws,bs)
+display(theta)
+Ws,bs = thetaToWeights(theta,[2,4,1])
+display(Ws)
+display(bs)
