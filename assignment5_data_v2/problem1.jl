@@ -110,7 +110,6 @@ function loadimages()
     push!(planes.images,img)
     push!(planes.labels,1)
   end
-
   ### ----------------------------------------------------
 
   trainplanes, testplanes = traintestsplit(planes, 0.5)
@@ -209,7 +208,8 @@ end
 # two principal components. Points get colored according to class labels y.
 #---------------------------------------------------------
 function visualizefeatures(X::Array{Float64,2}, y)
-  mu = mean(X,dims=2)
+  # mu = mean(X,dims=2)
+  mu = sum(X,dims=2)/size(X,2)
   C = X.-mu
   PCA = MultivariateStats.pcasvd(C,mu[:,1],1;maxoutdim=2)
   M = MultivariateStats.transform(PCA,X)
@@ -218,7 +218,7 @@ function visualizefeatures(X::Array{Float64,2}, y)
   col = hcat(col,[1-i for i in y])
   col = hcat(col,[i for i in y])
 
-  figure()
+  PyPlot.figure()
   PyPlot.scatter(M[1,:],M[2,:],c=col)
 
 
@@ -235,7 +235,7 @@ function problem1()
 
   # parameters
   params = Parameters(15, 1.4, 1e-7, 10)
-  K = 50
+  K = 5
 
   # load trainging and testing data
   traininginputs,testinginputs = loadimages()
