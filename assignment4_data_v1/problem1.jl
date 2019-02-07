@@ -29,16 +29,8 @@ function condition(points::Array{Float64,2})
   T = [ 1/s 0   -tx/s;
         0   1/s -ty/s;
         0   0   1     ]
-
-  # Convert points using Common so they can be multiplied
-  #points = Common.cart2hom(points')
   # Condition Points U
   U = T*points
-  # Re-convert points
-  #points = (Common.hom2cart(points))'
-  # Re-convert conditioned points
-  #U = (Common.hom2cart(U))'
-  #U = U[:,1:2]
 
   @assert size(U) == size(points)
   @assert size(T) == (3,3)
@@ -58,10 +50,10 @@ end
 #---------------------------------------------------------
 # Enforce that the given matrix has rank 2
 function enforcerank2(A::Array{Float64,2})
-
+  # Apply SVD to the Fundamental Matrix
   U,S,V = svd(A,full=true)
-  #S[end,end] = 0
-  Ahat = U*[S[1] 0 0;0 S[2] 0; 0 0 0]*V' # diagm(S) not working
+  # Enforce rank two on the Fundamental Matix
+  Ahat = U*[S[1] 0 0;0 S[2] 0; 0 0 0]*V'
 
   @assert size(Ahat) == (3,3)
   return Ahat::Array{Float64,2}
@@ -83,7 +75,7 @@ end
 function computefundamental(p1::Array{Float64,2},p2::Array{Float64,2})
 
   A=zeros(size(p1,2),9)
-
+  # Create the linear equation system to estimate the Fundamental Matrix
   for i=1:size(p1,2)
 
     x1 = p1[1,i]
@@ -91,15 +83,14 @@ function computefundamental(p1::Array{Float64,2},p2::Array{Float64,2})
     y1 = p1[2,i]
     y2 = p2[2,i]
 
-    A[i,:]=[x2*x1 y2*x1 x1 x2*y1 y2*y1 y1 x2 y2 1]
+    A[i,:]= kron(p1[:,i]',p2[:,i]')#[x2*x1 y2*x1 x1 x2*y1 y2*y1 y1 x2 y2 1]
   end
-
+  # Apply SVD to estimate a Solution
   U,S,V = svd(A,full=true)
-
+  # Take the last singular Vector as the solution for the Fundamental Matrix
   F = [V[1:3,end]';V[4:6,end]';V[7:9,end]']
-
+  # Enforce Rank two on the previously estimated Fundamental Matrix
   F = enforcerank2(F)
-
 
   @assert size(F) == (3,3)
   return F::Array{Float64,2}
@@ -118,14 +109,13 @@ end
 #
 #---------------------------------------------------------
 function eightpoint(p1::Array{Float64,2},p2::Array{Float64,2})
-
+  # Condition the Points for better Numerical stability
   x1,T1 = condition(p1)
   x2,T2 = condition(p2)
-
+  # Compute the Fundamental Matrix
   F = computefundamental(x1,x2)
-  display(F)
+  # Un-Condition the Fundamental Matrix
   F = T1'*F*T2
-  display(F)
 
   @assert size(F) == (3,3)
   return F::Array{Float64,2}
@@ -151,28 +141,29 @@ end
 #
 #---------------------------------------------------------
 function showepipolar(F::Array{Float64,2},points::Array{Float64,2},img::Array{Float64,3})
+  # Calculate the Epipole
   e = nullspace(F)
+  # Normalize the Epipole coordinates
   e = e./e[3]
+  # Convert Points to homogeneous coordinates
   x = Common.cart2hom(points')
-  display(e)
-  display(F')
-  l = F*x
-
-
-  display(l)
+  # Calculate the Vectors of the Epipolar Lines
+  l = (F')*x
 
   imshow(img,interpolation="none")
-  # scatter()
+  # Plot the epipoles
   PyPlot.plot(e[1],e[2],"x")
-  # display(l)
-  e[2]=e[2]+30
-  e[1]=e[1]+30
-  for i=1:16
+  # Plot the Epipolar Lines with overestimated range
+  for i=1:size(points,1)
+    l[1:2,i] = l[1:2,i]/l[3,i]
     l[1:2,i] = l[1:2,i]/norm(l[1:2,i])
-    PyPlot.plot([e[1];e[1]+3000*l[2,i]],[e[2];e[2]-3000*l[1,i]],"red")
-    PyPlot.plot([e[1];e[1]-3000*l[2,i]],[e[2];e[2]+3000*l[1,i]],"red")
+    PyPlot.plot([e[1];e[1]+3000*l[2,i]],[e[2];e[2]-3000*l[1,i]],"black",linewidth=0.7)
+    PyPlot.plot([e[1];e[1]-3000*l[2,i]],[e[2];e[2]+3000*l[1,i]],"black",linewidth=0.7)
   end
-
+  # Limit the shown graph to the original Image
+  PyPlot.xlim(0,size(img,2))
+  PyPlot.ylim(size(img,1),0)
+  PyPlot.show()
   return nothing::Nothing
 end
 
@@ -192,6 +183,7 @@ end
 #---------------------------------------------------------
 function computeresidual(p1::Array{Float64,2},p2::Array{Float64,2},F::Array{Float64,2})
   residual = zeros(size(p1,2),1)
+  # Calculate the remaining Error of the Fundamental Martix with the Residuals
   for i=1:size(p1,2)
     residual[i] = p1[:,i]'*F*p2[:,i]
   end
