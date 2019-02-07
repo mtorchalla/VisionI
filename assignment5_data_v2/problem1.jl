@@ -235,7 +235,7 @@ function problem1()
 
   # parameters
   params = Parameters(15, 1.4, 1e-7, 10)
-  K = 5
+  K = 50
 
   # load trainging and testing data
   traininginputs,testinginputs = loadimages()

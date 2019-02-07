@@ -1,4 +1,4 @@
-using Images
+#printlnusing Images
 using PyPlot
 using FileIO
 using Optim
@@ -131,7 +131,7 @@ function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array
   sumStorage = zeros(size(theta,1))
 
   Ws, bs = thetaToWeights(theta, netdefinition)
-  Ws[end] = Ws[end]'
+  #Ws[end] = Ws[end]'
   for i=1:size(y,1)
 
       #First Layer
@@ -145,29 +145,38 @@ function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array
     #all other Layers
     for r=size(netdefinition,1)-2:-1:1
       p, z, x = forwardPass(r, theta, netdefinition, X[i,:])
-
-      delta = (delta .* Ws[r+1]) .* dsigmoid_dz(z)
-      display(Ws[r+1])
-      display(dsigmoid_dz(z))
-      display(delta)
+     #println("")
+     #display(delta)
+      delta = (delta' * Ws[r+1] )' .* dsigmoid_dz(z)
+     #println("")
+     #println("ws Dsig Delta")
+     #display(Ws[r+1])
+     #display(dsigmoid_dz(z))
+     #display(delta)
       newStorage = (delta' .* x)'
-      display(newStorage)
+     #println("")
+     #println("de/dws")
+     #display(newStorage)
       newStorageW = newStorage[:,1:end-1]
       newStorageW = newStorageW[:]
       newStorageB = newStorage[:,end]
-      display(newStorageW)
-      display(newStorageB)
+     #println("")
+     #println("ws + bs")
+     #display(newStorageW)
+     #display(newStorageB)
       storageW = vcat(storageW, newStorageW)
       storageB = vcat(storageB, newStorageB)
-      display(storageW)
-      display(storageB)
+     #println("")
+     #println("wsbs")
+     #display(storageW)
+     #display(storageB)
     end
     sumStorage += [storageW; storageB]
 
   end
   storage = 1/size(y,1) .* sumStorage
-  println("Länge Storage:")
-  println(size(storage))
+ #println("Länge Storage:")
+ #println(size(storage,1))
 
   return storage::Array{Float64,1}
 end
@@ -181,12 +190,26 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
   sigmaB = 0.001
   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
   initTheta = weightsToTheta(Ws, bs)
-  storage = zeros(size(y,1))
-  nlos = nnloss(initTheta, trainfeatures, trainlabels, netdefinition)
-  gradlos = nnlossgrad(storage, initTheta, trainfeatures, trainlabels, netdefinition)
-  # thetaOptim = Optim.minimizer(optimize(nlos, gradlos, initTheta, LBFGS()))
-  Ws, bs = thetaToWeights(thetaOptim)
-
+  storage = zeros(size(trainfeatures,1))
+  # nlos = nnloss(initTheta, trainfeatures, trainlabels, netdefinition)
+  # gradlos = nnlossgrad(storage, initTheta, trainfeatures, trainlabels, netdefinition)
+  res = optimize(Theta -> nnloss(Theta, trainfeatures, trainlabels, netdefinition), Theta -> nnlossgrad(storage, Theta, trainfeatures, trainlabels, netdefinition), initTheta, LBFGS(); inplace = false)
+  # thetaOptim = optimize(nlos, gradlos, initTheta, LBFGS(); inplace = false)
+  Optim.summary(res)
+  println("")
+  println("Minimizer")
+  display(Optim.minimizer(res))
+  println("")
+  println("Minimum")
+  display(Optim.minimum(res))
+  minTheta = Optim.minimizer(res)
+  Ws, bs = thetaToWeights(minTheta, netdefinition)
+  println("")
+  println("Weights")
+  display(Ws)
+  println("")
+  println("Biases")
+  display(bs)
   return Ws::Vector{Any},bs::Vector{Any}
 end
 
