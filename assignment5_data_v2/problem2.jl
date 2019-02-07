@@ -12,7 +12,6 @@ include("Common.jl")
 #---------------------------------------------------------
 function loaddata(path::String)
   data = load(path)
-  # display(data)
   features = data["features"]
   labels = data["labels"]
   @assert length(labels) == size(features,1)
@@ -76,17 +75,9 @@ function nnloss(theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1
   loss = 0
 
   for i=1:size(X,1)
-    w = X[i,:]
-    for k=1:size(netdefinition,1)-1 #iterate k-layers
-      #p = Ws[k]'*x + bs[k]
-      # W = zeros(netdefinition[k+1], size(w,1))
-      # for j=1:netdefinition[k+1] #iterate j-neurons of layer k, stack W
-      #   W[j,:] =  convert(Array{Float64,2}, Ws[k][j,:]')
-      # end
-      W = Ws[k]
-      w = sigmoid(W*w .+ bs[k])
-    end
-    p[i] = w[1]
+    z = X[i,:]
+    p_i, c, b = forwardPass(size(netdefinition,1)-1, theta, netdefinition, z)
+    p[i] = sum(p_i)
     loss += y[i] * log(p[i]) + (1-y[i])*log(1-p[i])
   end
   loss = -loss / size(y,1)
@@ -94,8 +85,21 @@ function nnloss(theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1
   return loss::Float64
 end
 
-function forwardPass(level, theta)
-
+function forwardPass(level, theta, netdefinition, x)
+  Ws, bs = thetaToWeights(theta, netdefinition)
+  z = x
+  a = 0
+  for k=1:level #iterate k-layers
+    a = Ws[k]*z .+ bs[k]
+    z = sigmoid(a)
+    if k==(level-1)
+      x = z
+    end
+  end
+  y = z
+  z = a
+  x = vcat(x, 1)
+  return y, z, x #return output and last neuron and last inputs
 end
 
 
@@ -104,13 +108,66 @@ end
 # The gradient should be stored in the vector 'storage'
 #---------------------------------------------------------
 function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1}, netdefinition::Array{Int, 1})
+  # if size(storage,1) != size(theta,1)
+  #   return storage
+  # else
+  #
+  #   l
+  #   for k=size(netdefinition):-1:2
+  #     if size(storage,1) ==
+  #   end
+  #
+  #   #Neue Grad. von W berechnen
+  #   for i=1:size(y,1)
+  #     p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
+  #     de = -2*y[i]*p + y[i] + p / ( (1-p)*p )
+  #     newGrads = de .* dsigmoid_dz(z) .* x
+  #   end
+  #   storage = vcat(storage, newGrads)
+  #
+  #   storage = nnlossgrad(storage, theta, X, y, netdefinition)
+  #
+  # end
+  sumStorage = zeros(size(theta,1))
 
+  Ws, bs = thetaToWeights(theta, netdefinition)
+  Ws[end] = Ws[end]'
   for i=1:size(y,1)
-    p = logloss(theta, )
-    de = -2*y[i]*p + y[i] + p / ( (1-p)*p )
+
+      #First Layer
+    p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
+    p = p[1]
+
+    delta = -2*y[i]*p + y[i] + p / ( (1-p)*p ) .* dsigmoid_dz(z[1])
+    storageW = (x * delta)[1:end-1]
+    storageB = (x * delta)[end]
+
+    #all other Layers
+    for r=size(netdefinition,1)-2:-1:1
+      p, z, x = forwardPass(r, theta, netdefinition, X[i,:])
+
+      delta = (delta .* Ws[r+1]) .* dsigmoid_dz(z)
+      display(Ws[r+1])
+      display(dsigmoid_dz(z))
+      display(delta)
+      newStorage = (delta' .* x)'
+      display(newStorage)
+      newStorageW = newStorage[:,1:end-1]
+      newStorageW = newStorageW[:]
+      newStorageB = newStorage[:,end]
+      display(newStorageW)
+      display(newStorageB)
+      storageW = vcat(storageW, newStorageW)
+      storageB = vcat(storageB, newStorageB)
+      display(storageW)
+      display(storageB)
+    end
+    sumStorage += [storageW; storageB]
 
   end
-
+  storage = 1/size(y,1) .* sumStorage
+  println("Länge Storage:")
+  println(size(storage))
 
   return storage::Array{Float64,1}
 end
@@ -120,6 +177,15 @@ end
 # Use LBFGS to optimize the MLP loss
 #---------------------------------------------------------
 function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, netdefinition::Array{Int, 1})
+  sigmaW = 0.01
+  sigmaB = 0.001
+  Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
+  initTheta = weightsToTheta(Ws, bs)
+  storage = zeros(size(y,1))
+  nlos = nnloss(initTheta, trainfeatures, trainlabels, netdefinition)
+  gradlos = nnlossgrad(storage, initTheta, trainfeatures, trainlabels, netdefinition)
+  # thetaOptim = Optim.minimizer(optimize(nlos, gradlos, initTheta, LBFGS()))
+  Ws, bs = thetaToWeights(thetaOptim)
 
   return Ws::Vector{Any},bs::Vector{Any}
 end
@@ -202,8 +268,8 @@ function initWeights(netdefinition::Array{Int,1}, sigmaW::Float64, sigmaB::Float
   Ws = Any[]
   bs = Any[]
   for i=1:size(netdefinition,1)-1
-    push!(Ws, randn(netdefinition[i+1],netdefinition[i]))
-    push!(bs, randn(netdefinition[i+1]))
+    push!(Ws, randn(netdefinition[i+1],netdefinition[i])*sigmaW)
+    push!(bs, randn(netdefinition[i+1])*sigmaB)
   end
 
   # Ws = vcat(Ws,randn(nWs))
@@ -230,9 +296,9 @@ function problem2()
   showbefore(features,labels)
   title("Data for Separable Case")
 
-  # # train MLP
-  # Ws,bs = train(features,labels, [2,4,1])
-  #
+  # train MLP
+  Ws,bs = train(features,labels, [2,4,4,1])
+
   # # show optimum and plot decision boundary
   # showafter(features,labels,Ws,bs)
   # title("Learned Decision Boundary for Separable Case")
@@ -271,5 +337,5 @@ function problem2()
 
   return
 end
-# PyPlot.close("all")
-# problem2()
+PyPlot.close("all")
+problem2()
