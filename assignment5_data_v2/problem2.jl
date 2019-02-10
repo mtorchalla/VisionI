@@ -85,18 +85,18 @@ function nnloss(theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1
 
   for i=1:size(X,1)
     z = X[i,:]
-    p_i, c, b = forwardPass(size(netdefinition,1)-1, theta, netdefinition, z)
+    p_i, c, b = forwardPass(size(netdefinition,1)-1, Ws, bs, netdefinition, z)
 
     p[i] = sum(p_i)
     loss += y[i] * log(p[i]) + (1-y[i])*log(1-p[i])
   end
   loss = -loss / size(y,1)
-  display(loss)
+  # display(loss)
   return loss::Float64
 end
 
-function forwardPass(level, theta, netdefinition, x)
-  Ws, bs = thetaToWeights(theta, netdefinition)
+function forwardPass(level, Ws, bs, netdefinition, x)
+  # Ws, bs = thetaToWeights(theta, netdefinition)
   z = x
   a = 0
   for k=1:level #iterate k-layers
@@ -139,61 +139,73 @@ function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array
   #
   # end
   # display(sum(storage))
-  sumstorage = zeros(size(theta,1))
-  Ws, bs = thetaToWeights(theta, netdefinition)
-
-  for i=1:size(y,1)
-
-    #First Layer
-    p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
-    p = p[1]
-
-    delta = 2*y[i]*p - y[i] - p / ( (1-p)*p ) * dsigmoid_dz(z[1])
-    storageW = ( delta *p* x )[1:end-1]
-    storageB = ( delta *p* x )[end]
-
-    Ws[end] = Ws[end]'
-    #all other Layers
-    for r=size(netdefinition,1)-2:-1:1
-      p, z, x = forwardPass(r, theta, netdefinition, X[i,:])
-      p_1,z_1 ,x_1 = forwardPass(r+1, theta, netdefinition, X[i,:])
-     #println("")
-     #display(delta)
-     delta_new = zeros(netdefinition[r])
-      for l=1:netdefinition[r]
-        for k=1:netdefinition[r+1]
-          delta_new[l] += (delta[k] * p_1[k] *  Ws[r+1][k, l] )
-        end
-      end
-      delta = delta_new
-     #println("")
-     #println("ws Dsig Delta")
-     #display(Ws[r+1])
-     #display(dsigmoid_dz(z))
-     #display(delta)
-      newStorage = (delta .* p * x')
-     #println("")
-     #println("de/dws")
-     #display(newStorage)
-      newStorageW = newStorage[:,1:end-1]
-      newStorageW = newStorageW[:]
-      newStorageB = newStorage[:,end]
-     #println("")
-     #println("ws + bs")
-     #display(newStorageW)
-     #display(newStorageB)
-      storageW = vcat(storageW, newStorageW)
-      storageB = vcat(storageB, newStorageB)
-     #println("")
-     #println("wsbs")
-     #display(storageW)
-     #display(storageB)
-    end
-    sumstorage += [storageW; storageB]
-
+  delta = 0.1
+  grad = zeros(size(theta,1))
+  for i=1:size(theta,1)
+    thetap = theta[:]
+    thetan = theta[:]
+    thetap[i] +=delta
+    thetan[i] -=delta
+    # display(thetap[i])
+    # display(thetan[i])
+    grad[i] = nnloss(thetap , X, y, netdefinition)-nnloss(thetan , X, y, netdefinition)
+    grad[i] = grad[i]/(2*delta)
+    # display(grad[i])
   end
-  # display( 1/size(y,1).*sumstorage - storage )
-  storage[:] = 1/size(y,1) .* sumstorage
+  # println("grad")
+  # display(grad)
+  storage[:] = grad[:]
+  # sumstorage = zeros(size(theta,1))
+  # Ws, bs = thetaToWeights(theta, netdefinition)
+  # #Ws[end] = Ws[end]'
+  # for i=1:size(y,1)
+  #
+  #   #First Layer
+  #   p, z, x = forwardPass(size(netdefinition,1)-1, Ws, bs, netdefinition, X[i,:])
+  #   println("z21 y1211 p1")
+  #   println(z)
+  #   println(x)
+  #   println(p)
+  #   p = p[1]
+  #
+  #   delta = ((p-y[i])/(p*(1-p)))* dsigmoid_dz(z[1])#2*y[i]*p - y[i] - p / ( (1-p)*p ) * dsigmoid_dz(z[1])
+  #   storageW = ( delta * x )[1:end-1]
+  #   storageB = ( delta * x )[end]
+  #
+  #   #all other Layers
+  #   for r=size(netdefinition,1)-2:-1:1
+  #     p, z, x = forwardPass(r, Ws, bs, netdefinition, X[i,:])
+  #    println("")
+  #    display(delta)
+  #     delta = (delta' * Ws[r+1] )' .* dsigmoid_dz(z)
+  #    println("")
+  #    println("ws Dsig Delta")
+  #    display(Ws[r+1])
+  #    display(dsigmoid_dz(z))
+  #    display(delta)
+  #     newStorage = (delta * x')
+  #    println("")
+  #    println("de/dws")
+  #    display(newStorage)
+  #     newStorageW = newStorage[:,1:end-1]
+  #     newStorageW = newStorageW[:]
+  #     newStorageB = newStorage[:,end]
+  #    println("")
+  #    println("ws + bs")
+  #    display(newStorageW)
+  #    display(newStorageB)
+  #     storageW = vcat(storageW, newStorageW)
+  #     storageB = vcat(storageB, newStorageB)
+  #    println("")
+  #    println("wsbs")
+  #    display(storageW)
+  #    display(storageB)
+  #   end
+  #   sumstorage += [storageW; storageB]
+  #
+  # end
+  # # display( 1/size(y,1).*sumstorage - storage )
+  # storage[:] = 1/size(y,1) .* sumstorage
   # display(storage)
  # println("Länge Storage:")
  # println(size(storage,1))
