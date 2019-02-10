@@ -41,12 +41,29 @@ end
 # with the decision boundary.
 #---------------------------------------------------------
 function showafter(features::Array{Float64,2},labels::Array{Float64,1},Ws::Vector{Any}, bs::Vector{Any})
-  p,c = predict(features,Ws,bs)
 
+  PyPlot.figure()
+  x1 = [j for j=-2:0.1:2.5 ]
+  x1 = reshape(x1, 1, size(x1,1))
+  y1 = [j for j=-2.5:0.1:3 ]
+
+  xx = zeros(size(y1,1), size(x1,2))
+  for j=1:size(y1,1)
+    xx[j,:] = x1[:]
+  end
+  yy = zeros(size(y1,1), size(x1,2))
+  for j=1:size(x1,2)
+    yy[:,j] = y1
+  end
+
+  Z, c = predict(hcat(xx[:], yy[:]) , Ws, bs)
+  Z = reshape(Z[:,1,1], size(xx,1), size(xx,2))
+  contourf(xx,yy,Z)
+
+  p,c = predict(features,Ws,bs)
   green = features[findall(c[:,1].<1.0),:]
   blue = features[findall(c[:,1].>=1.0),:]
 
-  PyPlot.figure()
   PyPlot.scatter(green[:,1],green[:,2],c="green",label="0")
   PyPlot.scatter(blue[:,1],blue[:,2],c="blue",label="1")
   PyPlot.legend()
@@ -92,6 +109,7 @@ function nnloss(theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1
   end
   loss = -loss / size(y,1)
   display(loss)
+  # nnlossgrad([1.0], theta, X, y, netdefinition)
   return loss::Float64
 end
 
@@ -140,64 +158,53 @@ function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array
   # end
   # display(sum(storage))
   sumstorage = zeros(size(theta,1))
+  pltstr = zeros(size(theta,1),size(y,1))
   Ws, bs = thetaToWeights(theta, netdefinition)
 
-  for i=1:size(y,1)
+  Ws[end] = reshape(Ws[end], size(Ws[end],2), size(Ws[end],1))
+  for i=1:1#size(y,1)
 
     #First Layer
     p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
     p = p[1]
 
-    delta = 2*y[i]*p - y[i] - p / ( (1-p)*p ) * dsigmoid_dz(z[1])
-    storageW = ( delta *p* x )[1:end-1]
-    storageB = ( delta *p* x )[end]
+    delta = -(-2*y[i]*p + y[i] + p) / ( (1-p)*p )   # * dsigmoid_dz(z[1])
+    storageW = ( delta .* dsigmoid_dz(z) .* x )[1:end-1]
+    storageB = ( delta .* dsigmoid_dz(z) .* x )[end]
 
-    Ws[end] = Ws[end]'
     #all other Layers
     for r=size(netdefinition,1)-2:-1:1
       p, z, x = forwardPass(r, theta, netdefinition, X[i,:])
       p_1,z_1 ,x_1 = forwardPass(r+1, theta, netdefinition, X[i,:])
-     #println("")
-     #display(delta)
-     delta_new = zeros(netdefinition[r])
-      for l=1:netdefinition[r]
-        for k=1:netdefinition[r+1]
-          delta_new[l] += (delta[k] * p_1[k] *  Ws[r+1][k, l] )
+      delta_new = zeros(netdefinition[r+1])
+
+      for l=1:netdefinition[r+1]
+        for k=1:netdefinition[r+2]
+          delta_new[l] += (delta[k] * dsigmoid_dz(z_1[k]) *  Ws[r+1][l, k] )
         end
       end
       delta = delta_new
-     #println("")
-     #println("ws Dsig Delta")
-     #display(Ws[r+1])
-     #display(dsigmoid_dz(z))
-     #display(delta)
-      newStorage = (delta .* p * x')
-     #println("")
-     #println("de/dws")
-     #display(newStorage)
+      newStorage = (delta .* dsigmoid_dz(z) * x')
+
       newStorageW = newStorage[:,1:end-1]
       newStorageW = newStorageW[:]
       newStorageB = newStorage[:,end]
-     #println("")
-     #println("ws + bs")
-     #display(newStorageW)
-     #display(newStorageB)
-      storageW = vcat(storageW, newStorageW)
-      storageB = vcat(storageB, newStorageB)
-     #println("")
-     #println("wsbs")
-     #display(storageW)
-     #display(storageB)
+      storageW = vcat(newStorageW, storageW)
+      storageB = vcat(newStorageB, storageB)
     end
     sumstorage += [storageW; storageB]
-
+    # display(sumstorage)
+    # pltstr[:,i] = [storageW; storageB]
   end
+  # plot(sumstorage[1], "-o")
+  # println(sumstorage[1])
   # display( 1/size(y,1).*sumstorage - storage )
-  storage[:] = 1/size(y,1) .* sumstorage
-  # display(storage)
- # println("Länge Storage:")
- # println(size(storage,1))
- # println(size(theta,1))
+  # figure()
+  # plot(Float64.(pltstr'))
+  # display(pltstr)
+  # figure()
+  # plot(sum(pltstr, dims=2)./size(y,1))
+  storage = 1/size(y,1) .* sumstorage
 
   return storage::Array{Float64,1}
 end
@@ -211,21 +218,34 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
   sigmaB = 0.001
   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
   initTheta = weightsToTheta(Ws, bs)
-  storage = zeros(size(initTheta,1))
+  # storage = zeros(size(initTheta,1))
   # nlos = nnloss(initTheta, trainfeatures, trainlabels, netdefinition)
   # gradlos = nnlossgrad(storage, initTheta, trainfeatures, trainlabels, netdefinition)
+  # println("nlos:", nlos)
+  # println("gradlos:", gradlos)
 
+  # figure()
   # theta_1 = initTheta
   # theta_0 = initTheta
   # n=1
-  # h=0.1
-  # while abs(nnloss(theta_0, trainfeatures, trainlabels, netdefinition)) >0.1 && n<100
+  # h=0.001
+  # nnlosss=zeros(1000)
+  # gradlosss=zeros(1000)
+  # while abs(nnloss(theta_0, trainfeatures, trainlabels, netdefinition)) >0.1 && n<300
   #   theta_1 = theta_0
   #   theta_0 = theta_1-(h*nnlossgrad(storage, theta_0, trainfeatures, trainlabels, netdefinition))
-  #   println(n)
+  #   # println("n: ", n)
+  #   # println("grad: ", theta_0)
+  #   gradlosss[n] = sum(theta_0)
+  #   nnlosss[n] = nnloss(theta_0, trainfeatures, trainlabels, netdefinition)
   #   n+=1
   # end
+  # figure()
+  # plot(gradlosss)
+  # figure()
+  # plot(nnlosss)
 
+  # figure()
   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
   initTheta = weightsToTheta(Ws, bs)
   #storage = zeros(size(initTheta,1))
@@ -238,10 +258,10 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
     return nnloss(Theta, trainfeatures, trainlabels, netdefinition)
   end
 
-  res = optimize(f, g!, initTheta, LBFGS())
+  res = optimize(f, initTheta, LBFGS(), Optim.Options(iterations = 1000, g_tol = 1e-12))
   # res = optimize(Theta -> nnloss(Theta, trainfeatures, trainlabels, netdefinition), initTheta, LBFGS())
 
-  min = Optim.minimum(res)
+  # min = Optim.minimum(res)
   # while abs(Optim.minimum(res))>0.1 && n<100
   #   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
   #   initTheta = weightsToTheta(Ws, bs)
@@ -253,6 +273,7 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
   #   display(min)
   # end
     # thetaOptim = optimize(nlos, gradlos, initTheta, LBFGS(); inplace = false)
+
   Optim.summary(res)
   println("")
   println("Minimizer")
@@ -391,22 +412,22 @@ function problem2()
   # make results reproducable
   Random.seed!(10)
 
-  # LINEAR SEPARABLE DATA
-  # load data
-  features,labels = loaddata("separable.jld2")
-
-  # show data points
-  showbefore(features,labels)
-  title("Data for Separable Case")
-
-  # train MLP
-  Ws,bs = train(features,labels, [2,4,1])
-
-  # # show optimum and plot decision boundary
-  showafter(features,labels,Ws,bs)
-  title("Learned Decision Boundary for Separable Case")
+  # # LINEAR SEPARABLE DATA
+  # # load data
+  # features,labels = loaddata("separable.jld2")
   #
+  # # show data points
+  # showbefore(features,labels)
+  # title("Data for Separable Case")
   #
+  # # train MLP
+  # Ws,bs = train(features,labels, [2,4,1])
+  #
+  # # # show optimum and plot decision boundary
+  # showafter(features,labels,Ws,bs)
+  # title("Learned Decision Boundary for Separable Case")
+
+
   # ## LINEAR NON-SEPARABLE DATA
   # # load data
   # features2,labels2 = loaddata("nonseparable.jld2")
@@ -421,24 +442,24 @@ function problem2()
   # # show optimum and plot decision boundary
   # showafter(features2,labels2,Ws, bs)
   # title("Learned Decision Boundary for Non-Separable Case")
-  #
-  # # PLANE-BIKE-CLASSIFICATION FROM PROBLEM 2
-  # # load data
-  # trainfeatures,trainlabels = loaddata("imgstrain.jld2")
-  # testfeatures,testlabels = loaddata("imgstest.jld2")
-  #
-  # # train MLP and predict classes
-  # Ws,bs = train(trainfeatures,trainlabels, [50,40,30,1])
-  # _,trainpredictions = predict(trainfeatures, Ws, bs)
-  # _,testpredictions = predict(testfeatures, Ws, bs)
-  #
-  # # show error
-  # trainerror = sum(trainpredictions.!=trainlabels)/length(trainlabels)
-  # testerror = sum(testpredictions.!=testlabels)/length(testlabels)
-  # println("Training Error Rate: $(round(100*trainerror,digits=2))%")
-  # println("Testing Error Rate: $(round(100*testerror,digits=2))%")
+
+  # PLANE-BIKE-CLASSIFICATION FROM PROBLEM 2
+  # load data
+  trainfeatures,trainlabels = loaddata("imgstrain.jld2")
+  testfeatures,testlabels = loaddata("imgstest.jld2")
+
+  # train MLP and predict classes
+  Ws,bs = train(trainfeatures,trainlabels, [50,40,30,1])
+  _,trainpredictions = predict(trainfeatures, Ws, bs)
+  _,testpredictions = predict(testfeatures, Ws, bs)
+
+  # show error
+  trainerror = sum(trainpredictions.!=trainlabels)/length(trainlabels)
+  testerror = sum(testpredictions.!=testlabels)/length(testlabels)
+  println("Training Error Rate: $(round(100*trainerror,digits=2))%")
+  println("Testing Error Rate: $(round(100*testerror,digits=2))%")
 
   return
 end
 PyPlot.close("all")
-problem2()
+# problem2()
