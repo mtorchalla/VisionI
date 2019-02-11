@@ -1,0 +1,32 @@
+Best MLP structure (with smallest MLP size):
+[50, 75, 2, 1]: Training Error Rate: 0.0%,	Testing Error Rate: 0.83%
+i)
+When changing the number of layers, the training and testing error compared to the best structure gets worse (small number of perceptrons):
+[50, 100, 10, 10, 10, 10, 10, 1]: Training Error Rate: 44.17%,	Testing Error Rate: 44.17%	
+[50, 100, 10, 10, 10, 10, 1]	: Training Error Rate: 44.17%,	Testing Error Rate: 44.17%	
+[50, 100, 10, 10, 10, 1]		: Training Error Rate: 44.17%,	Testing Error Rate: 44.17%	
+[50, 100, 10, 10, 1]			: Training Error Rate: 0.0%,	Testing Error Rate: 1.67%
+[50, 100, 10, 1]				: Training Error Rate: 55.83%, Testing Error Rate: 55.83%
+When the number of perceptrons per layer is high, the error doesnt change significally:
+[50, 100, 1]					: Training Error Rate: 0.0%,	Testing Error Rate: 1.67%
+[50, 100, 100, 1]				: Training Error Rate: 2.5%,	Testing Error Rate: 1.67%
+[50, 100, 100, 100, 1]			: Training Error Rate: 0.0%, 	Testing Error Rate: 2.5%
+The optimum seems to be at a layer size of 5, independend of the number of perceptrons (a high perceptrons gradient provided, see ii) )
+[50, 100, 20, 12, 1]			: Training Error Rate: 1.67%, Testing Error Rate: 3.33%
+[50, 10, 10, 10, 1]				: Training Error Rate: 44.17%, 	Testing Error Rate: 44.17%
+also the calculation time increases with the number of layers (with the same size)
+
+ii)
+When changing the number of perceptrons per layer:
+-the calculation time increases with the number of perceptrons
+-the training and testing error gets smaller, the bigger the difference of the perceptrons to the next layer
+-when the perceptrons gradient is to small and the number of perceptrons in the second layer is too small, the error gets bigger
+[50, 10, 10, 10, 1]		: Training Error Rate: 44.17%, 	Testing Error Rate: 44.17%
+[50, 50, 10, 10, 1]		: Training Error Rate: 44.17%, 	Testing Error Rate: 44.17%
+[50, 100, 20, 10, 2, 1]	: Training Error Rate: 44.17%, 	Testing Error Rate: 44.17%
+[50, 200, 75, 2, 1]		: Training Error Rate: 1.67%,	Testing Error Rate: 1.67%
+[50, 100, 20, 5, 1]		: Training Error Rate: 2.5%, 	Testing Error Rate: 1.67%
+[50, 200, 10, 1]		: Training Error Rate: 2.5%, 	Testing Error Rate: 1.67%
+[50, 100, 2, 1]			: Training Error Rate: 0.0%, 	Testing Error Rate: 1.67%
+[50, 200, 2, 1]			: Training Error Rate: 0.0%,	Testing Error Rate: 0.83%
+[50, 75, 2, 1]			: Training Error Rate: 0.0%,	Testing Error Rate: 0.83%
