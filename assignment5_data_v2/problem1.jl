@@ -94,18 +94,22 @@ function loadimages()
   nplanes = 134 # number of bikes
 
   ### Your implementations for loading images here -------
+  # Data container for bikes
   bikes = Dataset(ImageList[],zeros(Float64,0),nbikes)
+  # Load every Bike with the appropiate path
   for i=1:nbikes
+    # File path
     file = string("bikes","/",lpad(string(i),3,"0"),".png")
-    # println(file)
+    # Coversion to Float64
     img = Float64.(PyPlot.imread(file))
+    # Add images and labels to the Data Structure
     push!(bikes.images,img)
     push!(bikes.labels,0)
   end
+  # Same as for the bikes
   planes = Dataset(ImageList[],zeros(Float64,0),nplanes)
   for i=1:nplanes
     file = string("planes","/",lpad(string(i),3,"0"),".png")
-    # println(file)
     img = Float64.(PyPlot.imread(file))
     push!(planes.images,img)
     push!(planes.labels,1)
@@ -120,8 +124,6 @@ function loadimages()
 
   @assert length(trainingset) == 120
   @assert length(testingset) == 120
-  # figure()
-  #imshow(trainingset.images[1])#Has to be random? plane/bike
   return trainingset::Dataset, testingset::Dataset
 
 end
@@ -134,14 +136,15 @@ end
 # Use params.sigma for the Harris corner detector and SIFT together.
 #---------------------------------------------------------
 function extractfeatures(images::ImageList, params::Parameters)
+  # Container for the features of all images
   features = Array{Float64,2}[]
-  # println(typeof(features))
   for i = 1:length(images)
+    # Detect interestpoints in every image
     py,px = Common.detect_interestpoints(images[i], params.fsize, params.threshold, params.sigma, params.boundary)
+    # Add the detected features to the feature matrix for every image
     points = hcat(px,py)
     push!(features, Common.sift(points,images[i],params.sigma))
   end
-  # display(size(features[1],2))
   @assert length(features) == length(images)
   for i = 1:length(features)
     @assert size(features[i],1) == 128
@@ -154,12 +157,11 @@ end
 # Build a concatenated feature matrix from all given features
 #---------------------------------------------------------
 function concatenatefeatures(features::FeatureList)
+  # Stack the feature matrices for each image next to each other
   X = features[1]
   for i=2:size(features,1)
     X = hcat(X,features[i])
   end
-  # display(X)
-
 
   @assert size(X,1) == 128
   return X::Array{Float64,2}
@@ -169,10 +171,11 @@ end
 # Build a codebook for a given feature matrix by k-means clustering with K clusters
 #---------------------------------------------------------
 function computecodebook(X::Array{Float64,2},K::Int)
+  # Run K means on the Feature matrix of all features
   R = kmeans(X, K; maxiter=200, display=:iter)
+  # Assign the cluster centers to the codebook
   codebook = R.centers
-  # display(codebook)
-
+  display(codebook)
   @assert size(codebook) == (size(X,1),K)
   return codebook::Array{Float64,2}
 end
@@ -182,22 +185,18 @@ end
 # Compute a histogram over the codebook for all given features
 #---------------------------------------------------------
 function computehistogram(features::FeatureList,codebook::Array{Float64,2},K::Int)
+  # Histrogram Matrix for all images
   H = zeros(Float64,K,size(features,1))
-  # display(features[1][:,1])
   for i=1:size(features,1)
     for j=1:size(features[i],2)
+        # Compare each feature fomr each image to each word from the codebook and find the minimum error for best correspondence
         distances = (codebook.-features[i][:,j]).^2
         distances = sum(distances,dims=1)
-        # display(argmin(distances)[2])
         H[argmin(distances)[2],i] = H[argmin(distances)[2],i]+1
     end
   end
-  # display(H)
+  # Normalize the Histrograms
   H=H./sum(H,dims=1)
-  # display(H)
-  # display(sum(H,dims=1))
-  # figure()
-  # PyPlot.imshow(H)
   @assert size(H) == (K,length(features))
   return H::Array{Float64,2}
 end
@@ -212,7 +211,8 @@ function visualizefeatures(X::Array{Float64,2}, y)
   mu = sum(X,dims=2)/size(X,2)
   C = X.-mu
   PCA = MultivariateStats.pcasvd(C,mu[:,1],1;maxoutdim=2)
-  M = MultivariateStats.transform(PCA,X)
+  # M = MultivariateStats.transform(PCA,X)
+  M = MultivariateStats.fit(PCA,X;maxoutdim=2)
 
   col = [0 for i in y]
   col = hcat(col,[1-i for i in y])
