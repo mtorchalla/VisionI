@@ -175,7 +175,6 @@ function computecodebook(X::Array{Float64,2},K::Int)
   R = kmeans(X, K; maxiter=200, display=:iter)
   # Assign the cluster centers to the codebook
   codebook = R.centers
-  display(codebook)
   @assert size(codebook) == (size(X,1),K)
   return codebook::Array{Float64,2}
 end
@@ -207,12 +206,14 @@ end
 # two principal components. Points get colored according to class labels y.
 #---------------------------------------------------------
 function visualizefeatures(X::Array{Float64,2}, y)
-  # mu = mean(X,dims=2)
+  # Get mean of the histrogramms
   mu = sum(X,dims=2)/size(X,2)
+  # Centralized Data
   C = X.-mu
+  # Create PCA Model
   PCA = MultivariateStats.pcasvd(C,mu[:,1],1;maxoutdim=2)
-  # M = MultivariateStats.transform(PCA,X)
-  M = MultivariateStats.fit(PCA,X;maxoutdim=2)
+  # Transform Data to two dimensions
+  M = MultivariateStats.transform(PCA,X)
 
   col = [0 for i in y]
   col = hcat(col,[1-i for i in y])
