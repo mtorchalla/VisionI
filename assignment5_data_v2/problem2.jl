@@ -55,7 +55,7 @@ function showafter(features::Array{Float64,2},labels::Array{Float64,1},Ws::Vecto
   for j=1:size(x1,2)
     yy[:,j] = y1
   end
-
+  #Calculate all prediction in mesh xx and yy
   p, Z = predict(hcat(xx[:], yy[:]) , Ws, bs)
   Z = reshape(Z, size(xx,1), size(xx,2))
   contourf(xx,yy,Z)
@@ -87,7 +87,6 @@ end
 #---------------------------------------------------------
 function dsigmoid_dz(z)
   ds = sigmoid(z) .* (1 .- sigmoid(z))
-  # ds = -exp.(-z) .* (1 .+ exp.(-z)) .^ (-2)
   return ds
 end
 
@@ -97,14 +96,12 @@ end
 #---------------------------------------------------------
 function nnloss(theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1}, netdefinition::Array{Int, 1})
   Ws, bs = thetaToWeights(theta, netdefinition)
-  ### Ws in Form: Ws[numberOfLayer][NeuronOfLayer, NeuronOfLastLayer]
   p = zeros(size(y,1))
   loss = 0
 
   for i=1:size(X,1)
     z = X[i,:]
     p_i, c, b = forwardPass(size(netdefinition,1)-1, theta, netdefinition, z)
-
     p[i] = sum(p_i)
     loss += y[i] * log(p[i]) + (1-y[i])*log(1-p[i])
   end
@@ -115,19 +112,19 @@ end
 
 function forwardPass(level, theta, netdefinition, x)
   Ws, bs = thetaToWeights(theta, netdefinition)
-  z = x
+  z = x #acitvation before sigmoid
   a = 0
   for k=1:level #iterate k-layers
-    a = Ws[k]*z .+ bs[k]
-    z = sigmoid(a)
-    if k==(level-1)
+    a = Ws[k]*z .+ bs[k] #acitvation before sigmoid
+    z = sigmoid(a) #acitvation for next layer, with sigmoid
+    if k==(level-1) #first layer: return inputs x
       x = z
     end
   end
   y = z
   z = a
-  x = vcat(x, 1)
-  return y, z, x #return output and last neuron and last inputs
+  x = vcat(x, 1) #add bias node as input 1
+  return y, z, x #return output, last neuron and last inputs
 end
 
 
@@ -137,14 +134,14 @@ end
 #---------------------------------------------------------
 function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1}, netdefinition::Array{Int, 1})
   sumstorage = zeros(size(theta,1))
-  pltstr = zeros(size(theta,1),size(y,1))
   Ws, bs = thetaToWeights(theta, netdefinition)
 
   for i=1:size(y,1)
     #First Layer
     p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
     p = p[1]
-    delta = p-y[i] #output error
+    delta = p-y[i] #output error delta
+    #Calculate weight-derivative:
     storageW = ( delta .* dsigmoid_dz(z) .* x )[1:end-1]
     storageB = ( delta .* dsigmoid_dz(z) .* x )[end]
 
@@ -153,22 +150,23 @@ function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array
       p, z, x = forwardPass(r, theta, netdefinition, X[i,:])
       p_1,z_1 ,x_1 = forwardPass(r+1, theta, netdefinition, X[i,:])
       delta_new = zeros(netdefinition[r+1])
-
+      #Calculate weight-derivative:
       for l=1:netdefinition[r+1]
         for k=1:netdefinition[r+2]
           delta_new[l] += (delta[k] * dsigmoid_dz(z_1[k]) *  Ws[r+1][k, l] )
         end
       end
-      delta = delta_new
+      delta = delta_new #delta for next layer
       newStorage = (delta .* dsigmoid_dz(z) * x')
 
+      #Concatenate weight derivatives from output and hidden layers:
       newStorageW = newStorage[:,1:end-1]
       newStorageW = newStorageW[:]
       newStorageB = newStorage[:,end]
       storageW = vcat(newStorageW, storageW)
       storageB = vcat(newStorageB, storageB)
     end
-    sumstorage += [storageW; storageB]
+    sumstorage += [storageW; storageB] #add all derivatives for all datapoints
   end
   storage = 1/size(y,1) .* sumstorage
 
@@ -189,10 +187,11 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
   initTheta = weightsToTheta(Ws, bs)
   #storage = zeros(size(initTheta,1))
 
+  #Wrapper for gradient for use with Optim
   function g!(storage,Theta)
     storage[:] = nnlossgrad(storage, Theta, trainfeatures, trainlabels, netdefinition)
   end
-
+  #Wrapper for lossFunction for use with Optim
   function f(Theta)
     return nnloss(Theta, trainfeatures, trainlabels, netdefinition)
   end
@@ -200,6 +199,7 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
   res = optimize(f, g!, initTheta, LBFGS())#, Optim.Options(iterations = 2, g_tol = 1e-12))
   # res = optimize(Theta -> nnloss(Theta, trainfeatures, trainlabels, netdefinition), initTheta, LBFGS())
 
+  #Calculate trained Weights from Optimize
   Optim.summary(res)
   minTheta = Optim.minimizer(res)
   Ws, bs = thetaToWeights(minTheta, netdefinition)
@@ -214,7 +214,6 @@ end
 # c, N x 1 array of Array{Float,2}, contains the output class label (either 0 or 1) for each input feature.
 #---------------------------------------------------------
 function predict(X::Array{Float64,2}, Ws::Vector{Any}, bs::Vector{Any})
-  # p =Float64[]
   p = zeros(1, size(X,1))
   level = size(Ws,1)
   for i=1:size(X,1)
@@ -228,7 +227,7 @@ function predict(X::Array{Float64,2}, Ws::Vector{Any}, bs::Vector{Any})
   end
 
   c = round.(p)
-  p = reshape(p, size(p,2),1)
+  p = reshape(p, size(p,2),1) #Reshape for strange output type Array{Float64,2}?
   c = reshape(c, size(c,2),1)
   return p::Array{Float64,2}, c::Array{Float64,2}
 end
@@ -277,8 +276,8 @@ end
 # Initialize weights and biases from Gaussian distributions
 #---------------------------------------------------------
 function initWeights(netdefinition::Array{Int,1}, sigmaW::Float64, sigmaB::Float64)
-  nWs=0
-
+  ### Ws in Form: Ws[numberOfLayer][NeuronOfLayer, NeuronOfLastLayer]
+  ### bs in Form: bs[numberOfLayer][biases for each neuron in Layer]
   Ws = Any[]
   bs = Any[]
   for i=1:size(netdefinition,1)-1
