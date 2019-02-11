@@ -43,9 +43,9 @@ end
 function showafter(features::Array{Float64,2},labels::Array{Float64,1},Ws::Vector{Any}, bs::Vector{Any})
 
   PyPlot.figure()
-  x1 = [j for j=-2:0.1:2.5 ]
+  x1 = [j for j=minimum(features[:,1]):0.1:maximum(features[:,1]) ]
   x1 = reshape(x1, 1, size(x1,1))
-  y1 = [j for j=-2.5:0.1:3 ]
+  y1 = [j for j=minimum(features[:,2]):0.1:maximum(features[:,2]) ]
 
   xx = zeros(size(y1,1), size(x1,2))
   for j=1:size(y1,1)
@@ -56,13 +56,14 @@ function showafter(features::Array{Float64,2},labels::Array{Float64,1},Ws::Vecto
     yy[:,j] = y1
   end
 
-  Z, c = predict(hcat(xx[:], yy[:]) , Ws, bs)
-  Z = reshape(Z[:,1,1], size(xx,1), size(xx,2))
+  p, Z = predict(hcat(xx[:], yy[:]) , Ws, bs)
+  Z = reshape(Z, size(xx,1), size(xx,2))
   contourf(xx,yy,Z)
 
   p,c = predict(features,Ws,bs)
-  green = features[findall(c[:,1].<1.0),:]
-  blue = features[findall(c[:,1].>=1.0),:]
+  c = vec(c)
+  green = features[findall(c.<1.0),:]
+  blue = features[findall(c.>=1.0),:]
 
   PyPlot.scatter(green[:,1],green[:,2],c="green",label="0")
   PyPlot.scatter(blue[:,1],blue[:,2],c="blue",label="1")
@@ -102,23 +103,18 @@ function nnloss(theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1
 
   for i=1:size(X,1)
     z = X[i,:]
-    p_i, c, b = forwardPass(size(netdefinition,1)-1, Ws, bs, netdefinition, z)
+    p_i, c, b = forwardPass(size(netdefinition,1)-1, theta, netdefinition, z)
 
     p[i] = sum(p_i)
     loss += y[i] * log(p[i]) + (1-y[i])*log(1-p[i])
   end
   loss = -loss / size(y,1)
-<<<<<<< HEAD
-  # display(loss)
-=======
-  display(loss)
-  # nnlossgrad([1.0], theta, X, y, netdefinition)
->>>>>>> 3525180a30ad016a093aa84d73b6df90366c8c35
+
   return loss::Float64
 end
 
-function forwardPass(level, Ws, bs, netdefinition, x)
-  # Ws, bs = thetaToWeights(theta, netdefinition)
+function forwardPass(level, theta, netdefinition, x)
+  Ws, bs = thetaToWeights(theta, netdefinition)
   z = x
   a = 0
   for k=1:level #iterate k-layers
@@ -140,98 +136,41 @@ end
 # The gradient should be stored in the vector 'storage'
 #---------------------------------------------------------
 function nnlossgrad(storage::Array{Float64,1}, theta::Array{Float64,1}, X::Array{Float64,2}, y::Array{Float64,1}, netdefinition::Array{Int, 1})
-  # if size(storage,1) != size(theta,1)
-  #   return storage
-  # else
-  #
-  #   l
-  #   for k=size(netdefinition):-1:2
-  #     if size(storage,1) ==
-  #   end
-  #
-  #   #Neue Grad. von W berechnen
-  #   for i=1:size(y,1)
-  #     p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
-  #     de = -2*y[i]*p + y[i] + p / ( (1-p)*p )
-  #     newGrads = de .* dsigmoid_dz(z) .* x
-  #   end
-  #   storage = vcat(storage, newGrads)
-  #
-  #   storage = nnlossgrad(storage, theta, X, y, netdefinition)
-  #
-  # end
-  # display(sum(storage))
-  delta = 0.1
-  grad = zeros(size(theta,1))
-  for i=1:size(theta,1)
-    thetap = theta[:]
-    thetan = theta[:]
-    thetap[i] +=delta
-    thetan[i] -=delta
-    # display(thetap[i])
-    # display(thetan[i])
-    grad[i] = nnloss(thetap , X, y, netdefinition)-nnloss(thetan , X, y, netdefinition)
-    grad[i] = grad[i]/(2*delta)
-    # display(grad[i])
+  sumstorage = zeros(size(theta,1))
+  pltstr = zeros(size(theta,1),size(y,1))
+  Ws, bs = thetaToWeights(theta, netdefinition)
+
+  for i=1:size(y,1)
+    #First Layer
+    p, z, x = forwardPass(size(netdefinition,1)-1, theta, netdefinition, X[i,:])
+    p = p[1]
+    delta = p-y[i] #output error
+    storageW = ( delta .* dsigmoid_dz(z) .* x )[1:end-1]
+    storageB = ( delta .* dsigmoid_dz(z) .* x )[end]
+
+    #all other Layers
+    for r=size(netdefinition,1)-2:-1:1
+      p, z, x = forwardPass(r, theta, netdefinition, X[i,:])
+      p_1,z_1 ,x_1 = forwardPass(r+1, theta, netdefinition, X[i,:])
+      delta_new = zeros(netdefinition[r+1])
+
+      for l=1:netdefinition[r+1]
+        for k=1:netdefinition[r+2]
+          delta_new[l] += (delta[k] * dsigmoid_dz(z_1[k]) *  Ws[r+1][k, l] )
+        end
+      end
+      delta = delta_new
+      newStorage = (delta .* dsigmoid_dz(z) * x')
+
+      newStorageW = newStorage[:,1:end-1]
+      newStorageW = newStorageW[:]
+      newStorageB = newStorage[:,end]
+      storageW = vcat(newStorageW, storageW)
+      storageB = vcat(newStorageB, storageB)
+    end
+    sumstorage += [storageW; storageB]
   end
-  # println("grad")
-  # display(grad)
-  storage[:] = grad[:]
-  # sumstorage = zeros(size(theta,1))
-  # Ws, bs = thetaToWeights(theta, netdefinition)
-  # #Ws[end] = Ws[end]'
-  # for i=1:size(y,1)
-  #
-  #   #First Layer
-  #   p, z, x = forwardPass(size(netdefinition,1)-1, Ws, bs, netdefinition, X[i,:])
-  #   println("z21 y1211 p1")
-  #   println(z)
-  #   println(x)
-  #   println(p)
-  #   p = p[1]
-  #
-  #   delta = ((p-y[i])/(p*(1-p)))* dsigmoid_dz(z[1])#2*y[i]*p - y[i] - p / ( (1-p)*p ) * dsigmoid_dz(z[1])
-  #   storageW = ( delta * x )[1:end-1]
-  #   storageB = ( delta * x )[end]
-  #
-  #   #all other Layers
-  #   for r=size(netdefinition,1)-2:-1:1
-  #     p, z, x = forwardPass(r, Ws, bs, netdefinition, X[i,:])
-  #    println("")
-  #    display(delta)
-  #     delta = (delta' * Ws[r+1] )' .* dsigmoid_dz(z)
-  #    println("")
-  #    println("ws Dsig Delta")
-  #    display(Ws[r+1])
-  #    display(dsigmoid_dz(z))
-  #    display(delta)
-  #     newStorage = (delta * x')
-  #    println("")
-  #    println("de/dws")
-  #    display(newStorage)
-  #     newStorageW = newStorage[:,1:end-1]
-  #     newStorageW = newStorageW[:]
-  #     newStorageB = newStorage[:,end]
-  #    println("")
-  #    println("ws + bs")
-  #    display(newStorageW)
-  #    display(newStorageB)
-  #     storageW = vcat(storageW, newStorageW)
-  #     storageB = vcat(storageB, newStorageB)
-  #    println("")
-  #    println("wsbs")
-  #    display(storageW)
-  #    display(storageB)
-  #   end
-  #   sumstorage += [storageW; storageB]
-  #
-  # end
-  # # display( 1/size(y,1).*sumstorage - storage )
-  # storage[:] = 1/size(y,1) .* sumstorage
-  # display(storage)
- # println("Länge Storage:")
- # println(size(storage,1))
- # println(size(theta,1))
+  storage = 1/size(y,1) .* sumstorage
 
   return storage::Array{Float64,1}
 end
@@ -245,34 +184,7 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
   sigmaB = 0.001
   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
   initTheta = weightsToTheta(Ws, bs)
-  # storage = zeros(size(initTheta,1))
-  # nlos = nnloss(initTheta, trainfeatures, trainlabels, netdefinition)
-  # gradlos = nnlossgrad(storage, initTheta, trainfeatures, trainlabels, netdefinition)
-  # println("nlos:", nlos)
-  # println("gradlos:", gradlos)
 
-  # figure()
-  # theta_1 = initTheta
-  # theta_0 = initTheta
-  # n=1
-  # h=0.001
-  # nnlosss=zeros(1000)
-  # gradlosss=zeros(1000)
-  # while abs(nnloss(theta_0, trainfeatures, trainlabels, netdefinition)) >0.1 && n<300
-  #   theta_1 = theta_0
-  #   theta_0 = theta_1-(h*nnlossgrad(storage, theta_0, trainfeatures, trainlabels, netdefinition))
-  #   # println("n: ", n)
-  #   # println("grad: ", theta_0)
-  #   gradlosss[n] = sum(theta_0)
-  #   nnlosss[n] = nnloss(theta_0, trainfeatures, trainlabels, netdefinition)
-  #   n+=1
-  # end
-  # figure()
-  # plot(gradlosss)
-  # figure()
-  # plot(nnlosss)
-
-  # figure()
   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
   initTheta = weightsToTheta(Ws, bs)
   #storage = zeros(size(initTheta,1))
@@ -285,38 +197,13 @@ function train(trainfeatures::Array{Float64,2}, trainlabels::Array{Float64,1}, n
     return nnloss(Theta, trainfeatures, trainlabels, netdefinition)
   end
 
-  res = optimize(f, initTheta, LBFGS(), Optim.Options(iterations = 1000, g_tol = 1e-12))
+  res = optimize(f, g!, initTheta, LBFGS())#, Optim.Options(iterations = 2, g_tol = 1e-12))
   # res = optimize(Theta -> nnloss(Theta, trainfeatures, trainlabels, netdefinition), initTheta, LBFGS())
 
-  # min = Optim.minimum(res)
-  # while abs(Optim.minimum(res))>0.1 && n<100
-  #   Ws, bs = initWeights(netdefinition, sigmaW, sigmaB)
-  #   initTheta = weightsToTheta(Ws, bs)
-  #   res = optimize(Theta -> nnloss(Theta, trainfeatures, trainlabels, netdefinition), initTheta, LBFGS(); inplace = false)
-  #   n+=1
-  #   if Optim.minimum(res)<min
-  #     min = Optim.minimum(res)
-  #   end
-  #   display(min)
-  # end
-    # thetaOptim = optimize(nlos, gradlos, initTheta, LBFGS(); inplace = false)
-
   Optim.summary(res)
-  println("")
-  println("Minimizer")
-  display(Optim.minimizer(res))
-  println("")
-  println("Minimum")
-  display(min)
   minTheta = Optim.minimizer(res)
   Ws, bs = thetaToWeights(minTheta, netdefinition)
-  println("")
-  println("Weights")
-  display(Ws)
-  println("")
-  println("Biases")
-  display(bs)
-  display(Optim.g_converged(res))
+
   return Ws::Vector{Any},bs::Vector{Any}
 end
 
@@ -327,28 +214,22 @@ end
 # c, N x 1 array of Array{Float,2}, contains the output class label (either 0 or 1) for each input feature.
 #---------------------------------------------------------
 function predict(X::Array{Float64,2}, Ws::Vector{Any}, bs::Vector{Any})
-  p =Float64[]
-
+  # p =Float64[]
+  p = zeros(1, size(X,1))
+  level = size(Ws,1)
   for i=1:size(X,1)
     z = X[i,:]
     a = 0
-    for k=1:size(Ws,1) #iterate k-layers
+    for k=1:level #iterate k-layers
       a = Ws[k]*z .+ bs[k]
       z = sigmoid(a)
-      if k==(size(Ws,1)-1)
-        x = z
-      end
     end
-    y = z
-    z = a
-    x = vcat(x, 1)
-    p=vcat(p,y)
-
+    p[i] = z[1]
   end
 
-  c=round.(p)
-  p= hcat(p,X)
-  c= hcat(c,X)
+  c = round.(p)
+  p = reshape(p, size(p,2),1)
+  c = reshape(c, size(c,2),1)
   return p::Array{Float64,2}, c::Array{Float64,2}
 end
 
@@ -365,11 +246,7 @@ function weightsToTheta(Ws::Vector{Any}, bs::Vector{Any})
     theta = vcat(theta, bs[i][:])
   end
   theta = Float64.(theta)
-  # theta = Float64.(vcat(Vector(Ws),Vector(bs)))
-  # theta = reshape(hcat(Ws[1],bs[1])',(length(Ws[1])+length(bs[1]),1))
-  # for i=2:size(Ws,1)
-  #   theta = vcat(theta,reshape(hcat(Ws[i],bs[i])' , (length(Ws[i])+length(bs[i]) , 1)))
-  # end
+
   return theta::Vector{Float64}
 end
 
@@ -378,14 +255,6 @@ end
 # A helper function which decomposes and reshapes weights and biases from the variable theta
 #---------------------------------------------------------
 function thetaToWeights(theta::Vector{Float64}, netdefinition::Array{Int,1})
-  # nWs=0
-  # for i=1:size(netdefinition,1)-1
-  #   nWs=nWs+netdefinition[i]*netdefinition[i+1]
-  # end
-  # Ws = Any[]
-  # bs = Any[]
-  # Ws = vcat(Ws,theta[1:nWs])
-
   Ws = Any[]
   bs = Any[]
   offset = 1
@@ -399,7 +268,6 @@ function thetaToWeights(theta::Vector{Float64}, netdefinition::Array{Int,1})
     push!(bs, theta[offset:offset+netdefinition[i]-1])
     offset +=  netdefinition[i]
   end
-  # bs = vcat(bs,theta[offset+1:end])
 
   return Ws::Vector{Any}, bs::Vector{Any}
 end
@@ -409,12 +277,7 @@ end
 # Initialize weights and biases from Gaussian distributions
 #---------------------------------------------------------
 function initWeights(netdefinition::Array{Int,1}, sigmaW::Float64, sigmaB::Float64)
-  nWs=0   #################### Random Muss mit variabler gauss verteilung#############################
-  ####################################################################################################
-  # for i=1:size(netdefinition,1)-1
-  #   nWs=nWs+netdefinition[i]*netdefinition[i+1]
-  # end
-  # Ws = Any[]
+  nWs=0
 
   Ws = Any[]
   bs = Any[]
@@ -423,12 +286,6 @@ function initWeights(netdefinition::Array{Int,1}, sigmaW::Float64, sigmaB::Float
     push!(bs, randn(netdefinition[i+1]).*sigmaB)
   end
 
-  # Ws = vcat(Ws,randn(nWs))
-  # bs = vcat(bs,randn(sum(netdefinition[2:end])))
-
-  # ## Ws indizes wie bei Fuzzy also Ws[schicht r][neuron j von schicht r, von neuron l von schicht r-1]
-  # Ws = [ randn(netdefinition[i+1],netdefinition[i]) for i=1:size(netdefinition,1)-1]
-  # bs = [ randn(netdefinition[i+1]) for i=1:size(netdefinition,1)-1]
   return Ws::Vector{Any}, bs::Vector{Any}
 end
 
@@ -439,36 +296,36 @@ function problem2()
   # make results reproducable
   Random.seed!(10)
 
-  # # LINEAR SEPARABLE DATA
-  # # load data
-  # features,labels = loaddata("separable.jld2")
-  #
-  # # show data points
-  # showbefore(features,labels)
-  # title("Data for Separable Case")
-  #
-  # # train MLP
-  # Ws,bs = train(features,labels, [2,4,1])
-  #
-  # # # show optimum and plot decision boundary
-  # showafter(features,labels,Ws,bs)
-  # title("Learned Decision Boundary for Separable Case")
+  # LINEAR SEPARABLE DATA
+  # load data
+  features,labels = loaddata("separable.jld2")
+
+  # show data points
+  showbefore(features,labels)
+  title("Data for Separable Case")
+
+  # train MLP
+  Ws,bs = train(features,labels, [2,4,1])
+
+  # show optimum and plot decision boundary
+  showafter(features,labels,Ws,bs)
+  title("Learned Decision Boundary for Separable Case")
 
 
-  # ## LINEAR NON-SEPARABLE DATA
-  # # load data
-  # features2,labels2 = loaddata("nonseparable.jld2")
-  #
-  # # show data points
-  # showbefore(features2,labels2)
-  # title("Data for Non-Separable Case")
-  #
-  # # train MLP
-  # Ws,bs = train(features2,labels2, [2,4,1])
-  #
-  # # show optimum and plot decision boundary
-  # showafter(features2,labels2,Ws, bs)
-  # title("Learned Decision Boundary for Non-Separable Case")
+  # LINEAR NON-SEPARABLE DATA
+  # load data
+  features2,labels2 = loaddata("nonseparable.jld2")
+
+  # show data points
+  showbefore(features2,labels2)
+  title("Data for Non-Separable Case")
+
+  # train MLP
+  Ws,bs = train(features2,labels2, [2,4,1])
+
+  # show optimum and plot decision boundary
+  showafter(features2,labels2,Ws, bs)
+  title("Learned Decision Boundary for Non-Separable Case")
 
   # PLANE-BIKE-CLASSIFICATION FROM PROBLEM 2
   # load data
@@ -476,7 +333,7 @@ function problem2()
   testfeatures,testlabels = loaddata("imgstest.jld2")
 
   # train MLP and predict classes
-  Ws,bs = train(trainfeatures,trainlabels, [50,40,30,1])
+  Ws,bs = train(trainfeatures,trainlabels, [50, 75, 2, 1])
   _,trainpredictions = predict(trainfeatures, Ws, bs)
   _,testpredictions = predict(testfeatures, Ws, bs)
 
@@ -489,4 +346,4 @@ function problem2()
   return
 end
 PyPlot.close("all")
-# problem2()
+problem2()
